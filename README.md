@@ -44,13 +44,13 @@ RentFair delivers real-time rental intelligence with total data integrity:
 
 - **Live Locality Search**: Instant search for rental properties in any neighborhood with BHK, budget, area, and furnishing filters.
 - **Locality Market Baseline**: Real-time statistical metrics ($N$, Median, Mean, Median Price/sqft, IQR corridor) updated per search.
-- **Deterministic Fairness Scoring**: 0–100 index measuring asking rent alignment against verified comparable listings.
+- **Deterministic Fairness Scoring**: 0–100 index measuring asking rent alignment against valid extracted comparable listings.
 - **Statistical Outlier Detection**: Automatic flags for listings exceeding Tukey upper fences, indicating artificial price inflation.
 - **Data Provenance & Freshness (Fix 9)**: Every listing and baseline explicitly exposes source platform, canonical URL, retrieval timestamp, extraction status (`COMPLETE`, `PARTIAL`, `MINIMAL`), and boolean flags (`priceExplicitlyExtracted`, `areaExplicitlyExtracted`, `fairnessAnalysisPerformed`).
 - **Multi-Locality Market Comparison**: Compare 2 to 5 localities side-by-side with independent sample sizes, medians, rent/sqft, and distribution spreads.
 - **Property Compare Tray**: Side-by-side detailed comparison of up to 4 shortlisted listings.
 - **Saved Watchlist**: Local browser persistence for saving and tracking properties.
-- **Zero Synthetic Data Guarantee**: No mock data in live paths, no hallucinated numbers, no LLM inferences.
+- **Deterministic Live-Data Path**: No mock data is used in the live search path. Extracted property values in the live search path are derived from the information returned by SerpApi search results, and no LLM is used to invent missing rental values.
 
 ---
 
@@ -100,7 +100,7 @@ RentFair delivers real-time rental intelligence with total data integrity:
 5. **Canonical Deduplication**: Listings are deduplicated primarily by normalized canonical URL and secondarily by source platform + locality + rent + title fingerprint.
 6. **Comparable Property Clustering**: `FairnessEngineService` identifies compatible comparables matching locality, BHK, and property type, strictly excluding the target listing from its own baseline.
 7. **Statistical Evaluation**: Baseline median, Q1, Q3, IQR, and fences are computed. Fairness score and outlier flags are assigned.
-8. **Provenance Persistence**: Extracted listings and timestamps are saved to the repository.
+8. **Provenance Retention**: Extracted listings, timestamps, and metadata are retained in the session repository for the duration of the active application session.
 9. **UI Presentation**: React renders listing cards, the interactive SVG fairness gauge, locality baseline cards, and detailed provenance disclosures.
 
 ---
@@ -162,8 +162,8 @@ RentFair uses **deterministic, rule-based extraction** via regex and pattern mat
   - `retrievalTimestamp` / `scrapedAt`: ISO timestamp recording when SerpApi executed the retrieval.
   - `snippet`: Extracted text snippet returned by the search engine.
   - `extractionStatus`: `"COMPLETE"` (both price and area extracted), `"PARTIAL"` (price extracted, area missing or basic attributes), `"MINIMAL"` (price missing/unlisted).
-  - `priceExplicitlyExtracted`: Boolean flag indicating verified numeric rent extraction.
-  - `areaExplicitlyExtracted`: Boolean flag indicating verified carpet area extraction.
+  - `priceExplicitlyExtracted`: Boolean flag indicating whether a numeric rent value was explicitly extracted from the search result.
+  - `areaExplicitlyExtracted`: Boolean flag indicating whether a carpet area value was explicitly extracted from the search result.
   - `fairnessAnalysisPerformed`: Boolean flag indicating completed evaluation against market baseline.
 
 ---
@@ -194,8 +194,8 @@ RentFair uses **deterministic, rule-based extraction** via regex and pattern mat
 
 ### 1. Clone & Environment Configuration
 ```bash
-git clone https://github.com/your-username/rentfair.git
-cd rentfair
+git clone https://github.com/p-Abhi2006/RentFair.git
+cd RentFair
 
 # Create .env from template
 cp .env.example .env
@@ -299,7 +299,7 @@ Generates production assets in `dist/`.
 
 - **Search Availability Dependent**: Extraction volume depends on the depth and content of listings indexed by Google Search via SerpApi in the queried locality.
 - **Unpriced Listings**: Listings without publicly disclosed rent cannot establish a numerical baseline and are classified as `MINIMAL` extraction status.
-- **In-Memory Storage**: The default H2 database maintains records in memory; restarting the server clears persisted cache and history.
+- **In-Memory Storage & Retention**: The default H2 database maintains records in memory. Provenance information is retained during the active application session; restarting the server clears in-memory session cache and history.
 - **Methodology Notice**:
   > *"RentFair analyzes information returned by live search results. It does not independently verify property availability, ownership, rent, or listing accuracy."*
 

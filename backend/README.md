@@ -97,7 +97,7 @@ The server will start on `http://localhost:8080`.
 
 ---
 
-## 5. Caching & Persistence
+## 5. Caching & Session Retention
 
 - **Caching**: Searches with identical parameter combinations are cached in memory. Identical repeated queries do not re-consume SerpApi quota.
-- **Persistence**: Every search execution is recorded in the `search_queries` table, and extracted rental properties are persisted to `rental_listings` for historical intelligence.
+- **Session Retention**: Every search execution is recorded in the `search_queries` table, and extracted rental properties are retained in `rental_listings` during the active application session.
