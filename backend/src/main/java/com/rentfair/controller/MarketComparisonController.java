@@ -40,7 +40,7 @@ public class MarketComparisonController {
     public ResponseEntity<LocationComparisonResponse> compareMarketsGet(
             @RequestParam(required = false) String locations,
             @RequestParam(required = false, name = "location") List<String> locationList,
-            @RequestParam(required = false, defaultValue = "2") Integer bhk,
+            @RequestParam(required = false, defaultValue = "2") String bhk,
             @RequestParam(required = false, defaultValue = "all") String propertyType,
             @RequestParam(required = false, defaultValue = "all") String furnishing,
             @RequestParam(required = false) Integer minArea,
@@ -61,9 +61,18 @@ public class MarketComparisonController {
             throw new InvalidSearchParameterException("Locations parameter must be provided.");
         }
 
+        Integer parsedBhk = null;
+        if (bhk != null && !bhk.trim().isEmpty() && !bhk.trim().equalsIgnoreCase("all")) {
+            try {
+                parsedBhk = Integer.parseInt(bhk.trim());
+            } catch (NumberFormatException e) {
+                throw new InvalidSearchParameterException("Invalid BHK parameter: " + bhk);
+            }
+        }
+
         LocationComparisonRequest request = new LocationComparisonRequest(
                 locs,
-                bhk,
+                parsedBhk,
                 propertyType,
                 furnishing,
                 minArea,

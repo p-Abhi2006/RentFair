@@ -99,4 +99,35 @@ class MarketBaselineServiceTest {
         assertEquals(45000, baseline.getMedianRent());
         assertNull(baseline.getMedianPricePerSqft(), "Price/sqft must be null if no listings have area");
     }
+
+    @Test
+    void testBaselineCityDeduplication() {
+        // When entity city is identical to locality, it must be suppressed (null)
+        RentalListingEntity entityDup = new RentalListingEntity();
+        entityDup.setLocality("Whitefield");
+        entityDup.setCity("Whitefield");
+        entityDup.setBhk(2);
+        entityDup.setRentAmount(35000);
+
+        when(rentalListingRepository.findValidListingsByLocalityAndBhk(eq("Whitefield"), eq(2)))
+                .thenReturn(List.of(entityDup));
+
+        MarketBaselineDto baselineDup = baselineService.getBaseline("Whitefield", 2);
+        assertEquals("Whitefield", baselineDup.getLocality());
+        assertNull(baselineDup.getCity(), "City must be null when equal to locality");
+
+        // When entity city is distinct from locality, it must be preserved
+        RentalListingEntity entityDistinct = new RentalListingEntity();
+        entityDistinct.setLocality("Whitefield");
+        entityDistinct.setCity("Bangalore");
+        entityDistinct.setBhk(2);
+        entityDistinct.setRentAmount(35000);
+
+        when(rentalListingRepository.findValidListingsByLocalityAndBhk(eq("Whitefield"), eq(2)))
+                .thenReturn(List.of(entityDistinct));
+
+        MarketBaselineDto baselineDistinct = baselineService.getBaseline("Whitefield, Bangalore", 2);
+        assertEquals("Whitefield", baselineDistinct.getLocality());
+        assertEquals("Bangalore", baselineDistinct.getCity(), "Distinct city must be preserved");
+    }
 }

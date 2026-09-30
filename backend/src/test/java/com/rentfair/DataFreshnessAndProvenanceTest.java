@@ -300,4 +300,36 @@ public class DataFreshnessAndProvenanceTest {
         assertFalse(explanation.toLowerCase().contains("verified rent"), "Must not claim verified rent");
         assertFalse(explanation.toLowerCase().contains("guaranteed"), "Must not claim guaranteed availability");
     }
+
+    @Test
+    @DisplayName("Scenario 11: Entity to DTO mapping preserves all provenance and extraction status fields")
+    void testEntityToDtoMappingPreservesProvenanceFields() {
+        RentalListingEntity entity = new RentalListingEntity();
+        entity.setId("test-prov-1");
+        entity.setTitle("2 BHK Apartment in Whitefield");
+        entity.setLocality("Whitefield");
+        entity.setRentAmount(35000);
+        entity.setBhk(2);
+        entity.setRetrievalTimestamp("2026-09-29T10:00:00Z");
+        entity.setExtractionStatus("COMPLETE");
+        entity.setPriceExplicitlyExtracted(true);
+        entity.setAreaExplicitlyExtracted(true);
+        entity.setFairnessAnalysisPerformed(true);
+
+        when(rentalListingRepository.findById("test-prov-1")).thenReturn(java.util.Optional.of(entity));
+
+        com.rentfair.service.RentalSearchService mockSearchService = org.mockito.Mockito.mock(com.rentfair.service.RentalSearchService.class);
+        com.rentfair.controller.RentalSearchController controller = new com.rentfair.controller.RentalSearchController(mockSearchService, rentalListingRepository);
+
+        org.springframework.http.ResponseEntity<RentalListingDto> response = controller.getListingById("test-prov-1");
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCode().value());
+        RentalListingDto dto = response.getBody();
+        assertNotNull(dto);
+        assertEquals("2026-09-29T10:00:00Z", dto.getRetrievalTimestamp(), "retrievalTimestamp must be preserved");
+        assertEquals("COMPLETE", dto.getExtractionStatus(), "extractionStatus must be preserved");
+        assertTrue(dto.getPriceExplicitlyExtracted(), "priceExplicitlyExtracted must be preserved");
+        assertTrue(dto.getAreaExplicitlyExtracted(), "areaExplicitlyExtracted must be preserved");
+        assertTrue(dto.getFairnessAnalysisPerformed(), "fairnessAnalysisPerformed must be preserved");
+    }
 }

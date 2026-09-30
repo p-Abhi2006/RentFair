@@ -134,6 +134,11 @@ public class RentalSearchController {
         if (entity.getCreatedAt() != null) {
             dto.setScrapedAt(entity.getCreatedAt().toString());
         }
+        dto.setRetrievalTimestamp(entity.getRetrievalTimestamp());
+        dto.setExtractionStatus(entity.getExtractionStatus());
+        dto.setPriceExplicitlyExtracted(entity.getPriceExplicitlyExtracted());
+        dto.setAreaExplicitlyExtracted(entity.getAreaExplicitlyExtracted());
+        dto.setFairnessAnalysisPerformed(entity.getFairnessAnalysisPerformed());
         return dto;
     }
 }
