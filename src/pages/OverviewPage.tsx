@@ -37,6 +37,14 @@ interface OverviewPageProps {
   onNavigateTab: (tab: NavTab) => void;
 }
 
+const formatLocationDisplay = (locality?: string, city?: string | null): string => {
+  const loc = locality?.trim() || '';
+  const c = city?.trim() || '';
+  if (!loc) return c || 'Whitefield';
+  if (!c || c.toLowerCase() === loc.toLowerCase()) return loc;
+  return `${loc}, ${c}`;
+};
+
 export const OverviewPage: React.FC<OverviewPageProps> = ({
   listings,
   baseline,
@@ -99,7 +107,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           onSearch={onSearch}
           isSearching={isSearching}
           initialParams={{
-            location: `${baseline.locality}, ${baseline.city || 'Bangalore'}`,
+            location: formatLocationDisplay(baseline.locality, baseline.city),
             bhk: baseline.bhk ? String(baseline.bhk) : 'all',
           }}
         />
@@ -180,12 +188,12 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         {/* 4 Core Analytical SaaS Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatCard
-            title="Live Search Results"
+            title="Relevant Rental Results"
             value={listings.length.toString()}
             secondaryValue={`of ${baseline.sourceListingCount ?? listings.length} indexed`}
             description={`${listings.filter(l => l.carpetAreaSqft != null && l.carpetAreaSqft > 0).length} with usable area for parity`}
             icon={Layers}
-            badgeText={baseline.isPrototypeBaseline ? 'Prototype' : (listings.length > 0 ? 'Live Search' : undefined)}
+            badgeText={baseline.isPrototypeBaseline ? 'Prototype' : (listings.length > 0 ? 'Relevant' : undefined)}
             trend={{ direction: 'neutral', text: `Locality: ${baseline.locality}` }}
           />
 

@@ -57,6 +57,8 @@ export const ListingModal: React.FC<ListingModalProps> = ({
     };
   }, [listing, onClose]);
 
+  const [imageError, setImageError] = React.useState(false);
+
   if (!listing) return null;
 
   const isRentAvailable = listing.rentAmount != null && !isNaN(listing.rentAmount) && listing.rentAmount > 0;
@@ -90,10 +92,11 @@ export const ListingModal: React.FC<ListingModalProps> = ({
 
         {/* 1. TOP PROPERTY BANNER & HEADER */}
         <div className="relative h-44 -mx-5 sm:-mx-7 lg:-mx-8 -mt-5 sm:-mt-7 lg:-mt-8 mb-6 bg-slate-950 overflow-hidden border-b border-rf-border">
-          {listing.imageUrl ? (
+          {listing.imageUrl && !imageError ? (
             <img
               src={listing.imageUrl}
               alt={listing.title}
+              onError={() => setImageError(true)}
               className="w-full h-full object-cover"
             />
           ) : (
@@ -113,7 +116,12 @@ export const ListingModal: React.FC<ListingModalProps> = ({
           <div className="absolute bottom-3 left-5 sm:left-7 lg:left-8 flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/70 backdrop-blur-md border border-white/10 text-xs font-semibold text-white">
               <MapPin className="w-3.5 h-3.5 text-rf-teal" />
-              <span>{listing.locality}, {listing.city}</span>
+              <span>
+                {listing.locality}
+                {listing.city && listing.city.trim().toLowerCase() !== listing.locality.trim().toLowerCase()
+                  ? `, ${listing.city}`
+                  : ''}
+              </span>
               {listing.subLocality && <span className="text-slate-400">· {listing.subLocality}</span>}
             </span>
             {listing.sourcePlatform && (

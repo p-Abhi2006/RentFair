@@ -74,6 +74,8 @@ export const RentalCard: React.FC<RentalCardProps> = ({
 
   const catStyles = getCategoryStyles();
 
+  const [imageError, setImageError] = React.useState(false);
+
   return (
     <article
       className="group/card rounded-2xl bg-rf-surface border border-rf-border hover:border-teal-500/50 hover:bg-rf-surface-elevated/90 transition-all duration-200 hover:-translate-y-1 hover:shadow-card flex flex-col overflow-hidden font-sans"
@@ -81,10 +83,11 @@ export const RentalCard: React.FC<RentalCardProps> = ({
     >
       {/* 1. LARGE PROPERTY IMAGE / ARCHITECTURAL PREVIEW */}
       <div className="relative h-48 w-full bg-slate-950 overflow-hidden border-b border-rf-border">
-        {listing.imageUrl ? (
+        {listing.imageUrl && !imageError ? (
           <img
             src={listing.imageUrl}
             alt={listing.title}
+            onError={() => setImageError(true)}
             className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover/card:scale-[1.03]"
             loading="lazy"
           />
