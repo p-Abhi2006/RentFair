@@ -47,8 +47,17 @@ public class RentalSearchService {
     /**
      * Executes real SerpApi search, parses actual organic results, caches identical searches,
      * and returns clean frontend-compatible RentalListingDto items.
+     * Cache key includes all location, configuration, post-filtering, and sorting parameters to prevent cross-filter cache collisions.
      */
-    @Cacheable(value = "rentalSearches", key = "(#request.location != null ? #request.location : 'blr') + '-' + (#request.bhk != null ? #request.bhk : 'all') + '-' + (#request.propertyType != null ? #request.propertyType : 'all') + '-' + (#request.furnishing != null ? #request.furnishing : 'all')")
+    @Cacheable(value = "rentalSearches", key = "(#request.location != null && !#request.location.trim().isEmpty() ? #request.location.trim().toLowerCase() : 'blr') + '-' + " +
+            "(#request.bhk != null && !#request.bhk.trim().isEmpty() ? #request.bhk.trim().toLowerCase() : 'all') + '-' + " +
+            "(#request.propertyType != null && !#request.propertyType.trim().isEmpty() ? #request.propertyType.trim().toLowerCase() : 'all') + '-' + " +
+            "(#request.furnishing != null && !#request.furnishing.trim().isEmpty() ? #request.furnishing.trim().toLowerCase() : 'all') + '-' + " +
+            "(#request.minRent != null ? #request.minRent : 'none') + '-' + " +
+            "(#request.maxRent != null ? #request.maxRent : 'none') + '-' + " +
+            "(#request.minArea != null ? #request.minArea : 'none') + '-' + " +
+            "(#request.maxArea != null ? #request.maxArea : 'none') + '-' + " +
+            "(#request.sortBy != null && !#request.sortBy.trim().isEmpty() ? #request.sortBy.trim().toLowerCase() : 'fairness')")
     public List<RentalListingDto> search(RentalSearchRequest request) {
         String searchQuery = queryBuilder.buildQuery(request);
         log.info("Executing rental search with generated query: '{}'", searchQuery);
