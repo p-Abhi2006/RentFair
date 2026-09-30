@@ -49,4 +49,35 @@ class RentalQueryBuilderTest {
         String query = queryBuilder.buildQuery(request);
         assertEquals("for rent in Bangalore", query);
     }
+
+    @Test
+    void testDuplicateLocalityTokensNormalizedInQuery() {
+        RentalSearchRequest req1 = new RentalSearchRequest();
+        req1.setLocation("Whitefield, Whitefield");
+        req1.setBhk("2");
+        String q1 = queryBuilder.buildQuery(req1);
+        assertEquals("2 BHK for rent in Whitefield", q1);
+
+        RentalSearchRequest req2 = new RentalSearchRequest();
+        req2.setLocation("HSR Layout, HSR Layout");
+        req2.setBhk("2");
+        String q2 = queryBuilder.buildQuery(req2);
+        assertEquals("2 BHK for rent in HSR Layout", q2);
+
+        RentalSearchRequest req3 = new RentalSearchRequest();
+        req3.setLocation("Whitefield, Bangalore");
+        req3.setBhk("2");
+        String q3 = queryBuilder.buildQuery(req3);
+        assertEquals("2 BHK for rent in Whitefield, Bangalore", q3);
+    }
+
+    @Test
+    void testCleanLocationForQuery() {
+        assertEquals("Whitefield", queryBuilder.cleanLocationForQuery("Whitefield, Whitefield"));
+        assertEquals("HSR Layout", queryBuilder.cleanLocationForQuery("HSR Layout, HSR Layout"));
+        assertEquals("Whitefield, Bangalore", queryBuilder.cleanLocationForQuery("Whitefield, Bangalore"));
+        assertEquals("Whitefield", queryBuilder.cleanLocationForQuery("Whitefield"));
+        assertEquals("Bangalore", queryBuilder.cleanLocationForQuery(null));
+        assertEquals("Bangalore", queryBuilder.cleanLocationForQuery(""));
+    }
 }

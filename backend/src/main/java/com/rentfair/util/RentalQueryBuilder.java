@@ -43,11 +43,8 @@ public class RentalQueryBuilder {
         }
 
         // Location
-        String location = request.getLocation();
-        if (location == null || location.trim().isEmpty()) {
-            location = "Bangalore";
-        }
-        query.append(location.trim());
+        String location = cleanLocationForQuery(request.getLocation());
+        query.append(location);
 
         // Furnishing filter if specified
         if (request.getFurnishing() != null && !request.getFurnishing().trim().isEmpty() && !"all".equalsIgnoreCase(request.getFurnishing())) {
@@ -77,5 +74,31 @@ public class RentalQueryBuilder {
             case "UNFURNISHED" -> "unfurnished";
             default -> furnishing.toLowerCase().replace('_', ' ');
         };
+    }
+
+    public String cleanLocationForQuery(String location) {
+        if (location == null || location.trim().isEmpty()) {
+            return "Bangalore";
+        }
+        String[] parts = location.split(",");
+        List<String> distinctParts = new ArrayList<>();
+        for (String part : parts) {
+            String trimmed = part.trim();
+            if (trimmed.isEmpty()) continue;
+            boolean isDuplicate = false;
+            for (String existing : distinctParts) {
+                if (existing.equalsIgnoreCase(trimmed)) {
+                    isDuplicate = true;
+                    break;
+                }
+            }
+            if (!isDuplicate) {
+                distinctParts.add(trimmed);
+            }
+        }
+        if (distinctParts.isEmpty()) {
+            return "Bangalore";
+        }
+        return String.join(", ", distinctParts);
     }
 }
