@@ -77,6 +77,80 @@ public class SerpApiResultParser {
             "ref", "ref_", "fbclid", "gclid", "source", "campaign", "trk"
     );
 
+    private static final Set<String> BLOCKED_DOMAINS = Set.of(
+            "wikipedia.org",
+            "imdb.com",
+            "merriam-webster.com",
+            "dictionary.cambridge.org",
+            "dictionary.com",
+            "thesaurus.com",
+            "youtube.com",
+            "youtu.be",
+            "play.google.com",
+            "apps.apple.com",
+            "incometax.gov.in",
+            "incometaxindia.gov.in",
+            "undp.org",
+            "pib.gov.in",
+            "india.gov.in",
+            "spotify.com",
+            "music.apple.com",
+            "lyrics.com",
+            "azlyrics.com",
+            "genius.com",
+            "goodreads.com",
+            "rottentomatoes.com"
+    );
+
+    private static final Set<String> REAL_ESTATE_PORTALS = Set.of(
+            "99acres.com",
+            "magicbricks.com",
+            "housing.com",
+            "nobroker.in",
+            "nobroker.com",
+            "commonfloor.com",
+            "squareyards.com",
+            "makaan.com",
+            "nestaway.com",
+            "property24.com",
+            "olx.in",
+            "quikr.com",
+            "realestateindia.com",
+            "sulekha.com",
+            "indiaproperty.com",
+            "proptiger.com",
+            "cofynd.com",
+            "settlin.in",
+            "flathood.com",
+            "mygate.com"
+    );
+
+    private static final Pattern NEGATIVE_TITLE_PATTERN = Pattern.compile(
+            "\\b(definition|meaning|dictionary|vocabulary|thesaurus|synonyms|antonyms|etymology|" +
+            "movie|film\\s+(?:review|cast|adaptation|synopsis)|imdb|song|lyrics|trailer|soundtrack|pet shop boys|album|theatrical release|box office|" +
+            "tds on rent|income tax|section 194|tax deduction|subsidy scheme|pmay|" +
+            "pradhan mantri awas|economic rent|ricardian rent|rent-seeking|rent theory|" +
+            "bike rental|car rental|scooter rental|motorcycle rental|freedo|zoomcar|drivezy|" +
+            "bounce\\s+(?:rental|rentals|bike|bikes|scooter|scooters)|" +
+            "costume rental|furniture rental|camera rental|laptop rental|equipment rental|vehicle rental)\\b",
+            Pattern.CASE_INSENSITIVE
+    );
+
+    private static final Pattern NEGATIVE_SNIPPET_PATTERN = Pattern.compile(
+            "\\b(definition of rent|meaning of rent|merriam-webster|economic rent is|ricardian rent|" +
+            "section 194-ib|section 194i|tds on rent|tax deduction at source|income tax department|" +
+            "rent is a 2005|pet shop boys|directed by|starring|bike rental in|car rental in|" +
+            "scooter rental in|self-drive|rent a bike|rent a car|rent bikes|rent cars)\\b",
+            Pattern.CASE_INSENSITIVE
+    );
+
+    private static final Pattern RESIDENTIAL_MARKERS_PATTERN = Pattern.compile(
+            "\\b(bhk|rk|bedroom|bed|flat|apartment|villa|independent house|house|builder floor|" +
+            "gated community|society|penthouse|duplex|studio|carpet area|sq\\s*ft|sqft|sq\\.ft|square\\s*feet|" +
+            "for rent|on rent|available for rent|to let|to-let|rent per month|rent/month|semi furnished|fully furnished|unfurnished)\\b",
+            Pattern.CASE_INSENSITIVE
+    );
+
     /**
      * Converts raw SerpApi organic results into clean, deduplicated RentalListingDto items.
      * Never hallucinates or infers missing values.
@@ -95,6 +169,11 @@ public class SerpApiResultParser {
         for (int i = 0; i < rawResults.size(); i++) {
             SerpApiOrganicResult raw = rawResults.get(i);
             if (raw.getTitle() == null && raw.getLink() == null) {
+                continue;
+            }
+
+            // Deterministic relevance gate: exclude non-rental properties
+            if (!isRentalListingCandidate(raw)) {
                 continue;
             }
 
@@ -409,7 +488,8 @@ public class SerpApiResultParser {
         if (text.contains("builder floor") || text.contains("standalone")) {
             return "BUILDER_FLOOR";
         }
-        if (text.contains("independent house") || text.contains("independent duplex") || text.contains("individual house")) {
+        if (text.contains("independent house") || text.contains("independent duplex") || text.contains("individual house") ||
+                (text.matches("(?s).*\\bhouse\\b.*") && !text.contains("clubhouse") && !text.contains("warehouse"))) {
             return "INDEPENDENT_HOUSE";
         }
         if (text.contains("studio apartment") || text.contains("studio flat") || text.contains("1 rk") || text.contains("1rk") || text.contains("studio")) {
@@ -502,7 +582,7 @@ public class SerpApiResultParser {
     }
 
     public void extractLocalityAndCity(RentalListingDto dto, String text, String searchLocation) {
-        String city = "India";
+        String city = null;
         String locality = "Local Market";
         String subLocality = null;
 
@@ -510,9 +590,10 @@ public class SerpApiResultParser {
             String[] parts = searchLocation.split(",");
             locality = cleanLocalityName(parts[0].trim());
             if (parts.length > 1) {
-                city = cleanLocalityName(parts[parts.length - 1].trim());
-            } else {
-                city = locality;
+                String candidateCity = cleanLocalityName(parts[parts.length - 1].trim());
+                if (!candidateCity.equalsIgnoreCase(locality) && !candidateCity.isEmpty()) {
+                    city = candidateCity;
+                }
             }
         }
 
@@ -581,5 +662,131 @@ public class SerpApiResultParser {
                 .replaceAll("&#39;", "'")
                 .replaceAll("\\s+", " ")
                 .trim();
+    }
+
+    /**
+     * Deterministic relevance gate: validates that a raw SerpApi organic result is a genuine
+     * residential rental listing candidate.
+     * Excludes dictionaries, movies, encyclopedias, tax/housing schemes, vehicle/equipment rentals,
+     * and non-property results while preserving unpriced listings with strong property markers.
+     */
+    public boolean isRentalListingCandidate(SerpApiOrganicResult raw) {
+        if (raw == null) {
+            return false;
+        }
+        String title = raw.getTitle() != null ? raw.getTitle() : "";
+        String snippet = raw.getSnippet() != null ? raw.getSnippet() : "";
+        String link = raw.getLink() != null ? raw.getLink() : "";
+
+        if (title.trim().isEmpty() && link.trim().isEmpty()) {
+            return false;
+        }
+
+        // 1. Blocked domain check
+        String host = extractHost(link);
+        if (host != null) {
+            for (String blocked : BLOCKED_DOMAINS) {
+                if (host.equals(blocked) || host.endsWith("." + blocked)) {
+                    return false;
+                }
+            }
+        }
+
+        // 2. Strong negative patterns in title or snippet
+        if (NEGATIVE_TITLE_PATTERN.matcher(title).find()) {
+            return false;
+        }
+        if (NEGATIVE_SNIPPET_PATTERN.matcher(snippet).find()) {
+            return false;
+        }
+
+        String fullText = (title + " " + snippet).toLowerCase();
+        if (fullText.contains("pet shop boys") || fullText.contains("economic rent") ||
+                fullText.contains("bike rental") || fullText.contains("car rental") ||
+                fullText.contains("scooter rental") || fullText.contains("freedo") ||
+                fullText.contains("zoomcar") || fullText.contains("bounce rentals") ||
+                fullText.contains("tds on rent") || fullText.contains("undp") ||
+                fullText.contains("housing subsidy") || fullText.contains("rental subsidy") ||
+                fullText.contains("cm housing") || fullText.contains("pradhan mantri awas") ||
+                fullText.contains("dictionary") || fullText.contains("merriam-webster")) {
+            return false;
+        }
+
+        // 3. Positive signals: Must have residential property or rental markers
+        boolean isPortal = isRealEstatePortal(host);
+        boolean hasBhk = extractBhk(fullText) != null;
+        boolean hasPropertyType = detectPropertyType(fullText) != null;
+        boolean hasArea = extractArea(fullText) != null;
+        boolean hasRent = extractRent(fullText) != null;
+        boolean hasResidentialMarkers = RESIDENTIAL_MARKERS_PATTERN.matcher(fullText).find();
+
+        if (isPortal) {
+            // Portal results are accepted as long as they contain residential/rental markers
+            return hasBhk || hasPropertyType || hasArea || hasRent || hasResidentialMarkers ||
+                    fullText.contains("rent") || fullText.contains("flat") || fullText.contains("apartment");
+        }
+
+        // For non-portal domains:
+        // If BHK is explicitly present with rental or property context, it is a genuine residential rental candidate
+        if (hasBhk && (hasRent || fullText.contains("rent") || fullText.contains("rental") ||
+                fullText.contains("lease") || fullText.contains("to let") || fullText.contains("to-let") ||
+                fullText.contains("deposit") || fullText.contains("furnished") || hasPropertyType || hasArea)) {
+            return true;
+        }
+
+        // Accept if both BHK and property type are present (e.g. "3 BHK villa in HSR Layout", "2 BHK flat")
+        if (hasBhk && hasPropertyType) {
+            return true;
+        }
+
+        // Accept if location/rental context present (e.g. "Rental in Bangalore North", "Rent in Indiranagar", "Rental Property")
+        if (fullText.contains("rental in") || fullText.contains("rent in") || fullText.contains("rental property") || fullText.contains("property for rent")) {
+            return true;
+        }
+
+        // Or if property structure (BHK, PropertyType, or Area) AND tenancy context (for rent, to let, deposit, furnished, per month, etc.)
+        boolean hasStructure = hasBhk || hasPropertyType || hasArea;
+        boolean hasTenancy = hasRent || fullText.contains("for rent") || fullText.contains("on rent") ||
+                fullText.contains("available for rent") || fullText.contains("to let") || fullText.contains("to-let") ||
+                fullText.contains("deposit") || fullText.contains("furnished") || fullText.contains("tenant") ||
+                fullText.contains("lease") || fullText.contains("per month") || fullText.contains("/mo");
+
+        return hasStructure && hasTenancy;
+    }
+
+    public boolean isRealEstatePortal(String host) {
+        if (host == null) return false;
+        for (String portal : REAL_ESTATE_PORTALS) {
+            if (host.equals(portal) || host.endsWith("." + portal)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public String extractHost(String url) {
+        if (url == null || url.trim().isEmpty()) return null;
+        try {
+            URI uri = URI.create(url.trim());
+            String host = uri.getHost();
+            if (host != null) {
+                host = host.toLowerCase();
+                if (host.startsWith("www.")) {
+                    host = host.substring(4);
+                }
+                return host;
+            }
+        } catch (Exception ignored) {}
+        try {
+            Matcher m = Pattern.compile("^(?:https?://)?(?:www\\.)?([^/:?#\\s]+)", Pattern.CASE_INSENSITIVE).matcher(url.trim());
+            if (m.find()) {
+                String host = m.group(1).toLowerCase();
+                if (host.startsWith("www.")) {
+                    host = host.substring(4);
+                }
+                return host;
+            }
+        } catch (Exception ignored) {}
+        return null;
     }
 }
