@@ -83,8 +83,8 @@ export const ComparePage: React.FC<ComparePageProps> = ({
         </div>
       </div>
 
-      {/* Quick Add Selector if fewer than 3 properties in compare */}
-      {availableToAdd.length > 0 && compareListings.length < 3 && (
+      {/* Quick Add Selector if fewer than 4 properties in compare */}
+      {availableToAdd.length > 0 && compareListings.length < 4 && (
         <div className="mb-6 p-4 rounded-2xl bg-rf-surface/90 border border-rf-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-subtle">
           <div className="flex items-center gap-2 text-xs text-slate-300 font-medium">
             <Plus className="w-4 h-4 text-teal-400" aria-hidden="true" />

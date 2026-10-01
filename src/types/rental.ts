@@ -25,7 +25,7 @@ export interface RentalListing {
   title: string;
   locality: string;
   subLocality?: string;
-  city: string;
+  city?: string | null;
   rentAmount: number | null; // in INR / local currency. Null if unavailable. Never 0.
   depositAmount: number | null;
   bhk: number | null; // 1, 2, 3, 4
@@ -57,7 +57,7 @@ export interface RentalListing {
 
 export interface MarketBaseline {
   locality: string;
-  city: string;
+  city?: string | null;
   bhk: number;
   propertyType?: PropertyType;
   sampleSize: number;
@@ -87,6 +87,7 @@ export interface SearchFilterParams {
   location: string;
   bhk: string; // 'all' | '1' | '2' | '3' | '4+'
   propertyType: string; // 'all' | PropertyType
+  minRent?: number;
   maxRent?: number;
   minArea?: number;
   maxArea?: number;
@@ -122,7 +123,7 @@ export interface LocationComparisonRequest {
 
 export interface LocalityMarketStats {
   locality: string;
-  city: string;
+  city?: string | null;
   totalListingCount: number;
   sourceListingCount?: number;
   validPricedListingCount: number;

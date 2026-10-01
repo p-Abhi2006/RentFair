@@ -17,7 +17,11 @@ import {
  * ----------------------------------------------------------------------
  */
 
-export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL;
+export const API_BASE_URL: string =
+  configuredBaseUrl !== undefined && configuredBaseUrl !== ''
+    ? configuredBaseUrl
+    : (import.meta.env.DEV ? 'http://localhost:8080' : '');
 
 export class ApiConnectionError extends Error {
   constructor(message: string) {
@@ -33,6 +37,26 @@ export class ApiRateLimitError extends Error {
   }
 }
 
+interface BackendErrorPayload {
+  status?: number;
+  error?: string;
+  message?: string;
+  path?: string;
+  details?: string[];
+}
+
+function formatBackendErrorMessage(errorJson: BackendErrorPayload | null, fallbackText: string): string {
+  if (!errorJson) return fallbackText;
+  const mainMsg = errorJson.message || fallbackText;
+  if (Array.isArray(errorJson.details) && errorJson.details.length > 0) {
+    const detailsStr = errorJson.details.filter(Boolean).join('; ');
+    if (detailsStr) {
+      return `${mainMsg} (${detailsStr})`;
+    }
+  }
+  return mainMsg;
+}
+
 export const rentalService = {
   /**
    * Search and filter rental listings via Spring Boot backend + SerpApi
@@ -46,6 +70,7 @@ export const rentalService = {
     if (params.bhk && params.bhk !== 'all') queryParams.set('bhk', params.bhk);
     if (params.propertyType && params.propertyType !== 'all') queryParams.set('propertyType', params.propertyType);
     if (params.furnishing && params.furnishing !== 'all') queryParams.set('furnishing', params.furnishing);
+    if (params.minRent !== undefined && params.minRent !== null) queryParams.set('minRent', params.minRent.toString());
     if (params.maxRent) queryParams.set('maxRent', params.maxRent.toString());
     if (params.minArea) queryParams.set('minArea', params.minArea.toString());
     if (params.maxArea) queryParams.set('maxArea', params.maxArea.toString());
@@ -72,7 +97,7 @@ export const rentalService = {
         );
       }
       const errorJson = await response.json().catch(() => null);
-      const errorMsg = errorJson?.message || response.statusText;
+      const errorMsg = formatBackendErrorMessage(errorJson, response.statusText);
       throw new Error(`Spring Boot backend error (${response.status}): ${errorMsg}`);
     }
 
@@ -115,7 +140,7 @@ export const rentalService = {
         );
       }
       const errorJson = await response.json().catch(() => null);
-      const errorMsg = errorJson?.message || response.statusText;
+      const errorMsg = formatBackendErrorMessage(errorJson, response.statusText);
       throw new Error(`Failed to fetch market baseline (${response.status}): ${errorMsg}`);
     }
 
@@ -184,7 +209,7 @@ export const rentalService = {
         );
       }
       const errorJson = await response.json().catch(() => null);
-      const errorMsg = errorJson?.message || response.statusText;
+      const errorMsg = formatBackendErrorMessage(errorJson, response.statusText);
       throw new Error(`Market comparison failed (${response.status}): ${errorMsg}`);
     }
 

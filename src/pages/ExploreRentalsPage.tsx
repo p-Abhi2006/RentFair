@@ -138,7 +138,7 @@ export const ExploreRentalsPage: React.FC<ExploreRentalsPageProps> = ({
                     : 'text-rf-text-muted hover:text-rf-text-primary hover:bg-rf-surface-elevated/50'
                 }`}
               >
-                All Live Results ({listings.length})
+                Relevant Rental Results ({listings.length})
               </button>
               <button
                 type="button"
@@ -203,7 +203,7 @@ export const ExploreRentalsPage: React.FC<ExploreRentalsPageProps> = ({
                   <option value="price_low" className="bg-slate-900 text-slate-100">Price: Low to High</option>
                   <option value="price_high" className="bg-slate-900 text-slate-100">Price: High to Low</option>
                   <option value="area_desc" className="bg-slate-900 text-slate-100">Carpet Area: Largest First</option>
-                  <option value="variance_asc" className="bg-slate-900 text-slate-100">Best Market Value (Lowest Variance)</option>
+                  <option value="variance_asc" className="bg-slate-900 text-slate-100">Lowest Variance (Below Median)</option>
                 </select>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
               </div>
@@ -227,21 +227,33 @@ export const ExploreRentalsPage: React.FC<ExploreRentalsPageProps> = ({
               )}
             </div>
             <span className="text-xs text-slate-400 font-sans">
-              Showing <strong className="text-slate-200">{filteredListings.length}</strong> of {listings.length} live listings
+              Showing <strong className="text-slate-200">{filteredListings.length}</strong> of {listings.length} relevant rental listings
             </span>
           </div>
 
           {/* Listings Grid or Empty State */}
           {filteredListings.length === 0 ? (
-            <EmptyState
-              title="— No live search results found"
-              reason={`There are currently no listings in "${currentParams.location || 'this locality'}" matching the "${activeCategoryFilter}" fairness filter.`}
-              suggestion="Select 'All Results' to see all scanned units or adjust your query in the Overview tab."
-              onReset={() => setActiveCategoryFilter('all')}
-              resetLabel="Clear Fairness Filter"
-              onSecondaryAction={() => onNavigateTab('overview')}
-              secondaryActionLabel="New Search Query"
-            />
+            listings.length === 0 ? (
+              <EmptyState
+                title="No relevant rental listings found"
+                reason={`Live search results were returned for "${currentParams.location || 'this locality'}", but none met RentFair's rental-property relevance criteria.`}
+                suggestion="Try searching for a specific locality with bedroom configuration (e.g. '2 BHK flat for rent in Whitefield')."
+                onReset={() => onNavigateTab('overview')}
+                resetLabel="Start New Search"
+                onSecondaryAction={() => onNavigateTab('overview')}
+                secondaryActionLabel="New Search Query"
+              />
+            ) : (
+              <EmptyState
+                title="— No matching listings in this category"
+                reason={`There are currently no listings in "${currentParams.location || 'this locality'}" matching the "${activeCategoryFilter}" fairness filter.`}
+                suggestion="Select 'Relevant Rental Results' to see all scanned units or adjust your query in the Overview tab."
+                onReset={() => setActiveCategoryFilter('all')}
+                resetLabel="Clear Fairness Filter"
+                onSecondaryAction={() => onNavigateTab('overview')}
+                secondaryActionLabel="New Search Query"
+              />
+            )
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {filteredListings.map((item) => (

@@ -322,9 +322,9 @@ export const ListingModal: React.FC<ListingModalProps> = ({
             Data Quality / Provenance
           </h4>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 text-xs">
             {/* Price extraction */}
-            <div className="p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
+            <div className="col-span-1 sm:col-span-2 p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
               <span className="text-slate-400 text-[10px] block uppercase font-medium">Price</span>
               <div className="mt-1 flex items-center gap-1.5 font-semibold">
                 {isRentAvailable ? (
@@ -342,7 +342,7 @@ export const ListingModal: React.FC<ListingModalProps> = ({
             </div>
 
             {/* Area extraction */}
-            <div className="p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
+            <div className="col-span-1 sm:col-span-2 p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
               <span className="text-slate-400 text-[10px] block uppercase font-medium">Area</span>
               <div className="mt-1 flex items-center gap-1.5 font-semibold">
                 {isAreaAvailable ? (
@@ -360,7 +360,7 @@ export const ListingModal: React.FC<ListingModalProps> = ({
             </div>
 
             {/* Fairness analysis */}
-            <div className="p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
+            <div className="col-span-2 sm:col-span-2 p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
               <span className="text-slate-400 text-[10px] block uppercase font-medium">Fairness analysis</span>
               <div className="mt-1 flex items-center gap-1.5 font-semibold">
                 {listing.fairnessScore != null ? (
@@ -378,18 +378,18 @@ export const ListingModal: React.FC<ListingModalProps> = ({
             </div>
 
             {/* Source */}
-            <div className="p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
+            <div className="col-span-2 sm:col-span-3 p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
               <span className="text-slate-400 text-[10px] block uppercase font-medium">Source</span>
               <div className="mt-1 flex items-center gap-1.5 font-semibold">
                 <span className="inline-flex items-center gap-1 text-emerald-400">
                   <Check className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                  <span className="truncate">Live search result</span>
+                  <span className="whitespace-nowrap">Live search result</span>
                 </span>
               </div>
             </div>
 
             {/* Retrieved */}
-            <div className="p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
+            <div className="col-span-2 sm:col-span-3 p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
               <span className="text-slate-400 text-[10px] block uppercase font-medium">Retrieved</span>
               <div className="mt-1 text-slate-300 font-semibold truncate">
                 {(() => {
