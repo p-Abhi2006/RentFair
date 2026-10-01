@@ -1,11 +1,13 @@
 import React from 'react';
-import { AlertTriangle, RefreshCw, ServerCrash, WifiOff, HelpCircle, X } from 'lucide-react';
+import { AlertTriangle, RefreshCw, ServerCrash, WifiOff, HelpCircle, X, Sparkles } from 'lucide-react';
 
 interface ErrorStateProps {
   title?: string;
   message: string;
   onRetry?: () => void;
   retryLabel?: string;
+  onUseDemoData?: () => void;
+  demoDataLabel?: string;
 }
 
 export const ErrorState: React.FC<ErrorStateProps> = ({
@@ -13,13 +15,19 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
   message,
   onRetry,
   retryLabel = 'Retry Request',
+  onUseDemoData,
+  demoDataLabel = 'Explore Verified Demo Dataset',
 }) => {
-  const isConnectionError = message.toLowerCase().includes('connect') || message.toLowerCase().includes('network') || message.toLowerCase().includes('8080');
+  const isConnectionError =
+    message.toLowerCase().includes('connect') ||
+    message.toLowerCase().includes('network') ||
+    message.toLowerCase().includes('8080');
   const isRateLimit = message.toLowerCase().includes('rate limit') || message.toLowerCase().includes('quota');
+  const isMissingKey = message.toLowerCase().includes('api_key') || message.toLowerCase().includes('missing');
 
   const getIcon = () => {
     if (isConnectionError) return WifiOff;
-    if (isRateLimit) return AlertTriangle;
+    if (isRateLimit || isMissingKey) return AlertTriangle;
     return ServerCrash;
   };
 
@@ -27,12 +35,15 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
 
   const getNextSteps = () => {
     if (isConnectionError) {
-      return 'Verify that the Java Spring Boot backend server is actively running on port 8080. If newly started, give it a moment to initialize before retrying.';
+      return 'Verify that the Java Spring Boot backend server is running on port 8080. You can also explore the platform right away using the verified Bangalore sample dataset below.';
     }
     if (isRateLimit) {
-      return 'The search engine rate limit or monthly query allowance has been reached. Please pause a moment before retrying, or verify your SerpApi quota.';
+      return 'The SerpApi rate limit or monthly query allowance has been reached. You can continue testing the full evaluation UI using the demo baseline dataset.';
     }
-    return 'Check your search query format and verify your network connectivity. If the problem persists, review the backend logs.';
+    if (isMissingKey) {
+      return 'SERPAPI_API_KEY is not configured on the backend. Add your key to .env or explore the verified prototype dataset below.';
+    }
+    return 'Check your search query format and verify your network connectivity. You can explore the platform right now using the verified demo dataset below.';
   };
 
   return (
@@ -60,13 +71,13 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
       <div className="mt-4 p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 text-left text-xs text-slate-300 flex items-start gap-2.5">
         <HelpCircle className="w-4 h-4 text-teal-400 shrink-0 mt-0.5" aria-hidden="true" />
         <span className="leading-relaxed">
-          <strong className="text-slate-100">Next Action:</strong> {getNextSteps()}
+          <strong className="text-slate-100">Recommended Action:</strong> {getNextSteps()}
         </span>
       </div>
 
-      {/* Retry Button */}
-      {onRetry && (
-        <div className="mt-6">
+      {/* Action Buttons */}
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        {onRetry && (
           <button
             type="button"
             onClick={onRetry}
@@ -75,8 +86,19 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
             <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
             <span>{retryLabel}</span>
           </button>
-        </div>
-      )}
+        )}
+
+        {onUseDemoData && (
+          <button
+            type="button"
+            onClick={onUseDemoData}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 active:bg-teal-700 text-slate-950 text-xs font-bold transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-slate-950" aria-hidden="true" />
+            <span>{demoDataLabel}</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 };

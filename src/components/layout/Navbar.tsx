@@ -10,6 +10,7 @@ import {
   Layers,
   ChevronRight,
   GitCompare,
+  Sparkles,
 } from 'lucide-react';
 
 export type NavTab = 'overview' | 'explore' | 'compare' | 'market-compare' | 'saved' | 'insights' | 'about';
@@ -19,6 +20,8 @@ interface NavbarProps {
   onSelectTab: (tab: NavTab) => void;
   compareCount: number;
   savedCount: number;
+  isDemoMode?: boolean;
+  onToggleDemoMode?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -26,6 +29,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectTab,
   compareCount,
   savedCount,
+  isDemoMode = false,
+  onToggleDemoMode,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -132,10 +137,31 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Header Badges: Pipeline Status & Mobile Toggle */}
           <div className="flex items-center gap-3">
-            <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-lg bg-rf-surface border border-rf-border text-[11px] font-mono text-rf-text-muted">
-              <span className="w-1.5 h-1.5 rounded-full bg-rf-teal animate-pulse" aria-hidden="true"></span>
-              <span className="text-rf-text-secondary">Live SerpApi Data</span>
-            </div>
+            {onToggleDemoMode ? (
+              <button
+                type="button"
+                onClick={onToggleDemoMode}
+                title={isDemoMode ? "Click to switch to live SerpApi engine" : "Click to switch to verified demo dataset"}
+                className={`hidden sm:inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-[11px] font-mono transition-all cursor-pointer ${
+                  isDemoMode
+                    ? 'bg-amber-950/40 border-amber-600/50 text-amber-300 hover:bg-amber-950/70'
+                    : 'bg-rf-surface border-rf-border text-rf-text-secondary hover:border-rf-teal/50 hover:text-teal-300'
+                }`}
+              >
+                {isDemoMode ? (
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
+                ) : (
+                  <span className="w-1.5 h-1.5 rounded-full bg-rf-teal animate-pulse" aria-hidden="true"></span>
+                )}
+                <span>{isDemoMode ? 'Demo Dataset' : 'Live SerpApi'}</span>
+                <span className="text-[10px] text-rf-text-muted">⇄</span>
+              </button>
+            ) : (
+              <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-lg bg-rf-surface border border-rf-border text-[11px] font-mono text-rf-text-muted">
+                <span className="w-1.5 h-1.5 rounded-full bg-rf-teal animate-pulse" aria-hidden="true"></span>
+                <span className="text-rf-text-secondary">Live SerpApi Data</span>
+              </div>
+            )}
 
             {/* Mobile Hamburger Menu Button */}
             <button
@@ -192,7 +218,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <div className="pt-3 mt-2 border-t border-rf-border px-3 flex items-center justify-between text-xs text-rf-text-muted font-mono">
             <span>Data Engine:</span>
-            <span className="text-rf-teal">Live SerpApi Pipeline</span>
+            {onToggleDemoMode ? (
+              <button
+                type="button"
+                onClick={onToggleDemoMode}
+                className="text-rf-teal underline flex items-center gap-1"
+              >
+                <span>{isDemoMode ? 'Demo Dataset (Switch to Live)' : 'Live SerpApi (Switch to Demo)'}</span>
+              </button>
+            ) : (
+              <span className="text-rf-teal">Live SerpApi Pipeline</span>
+            )}
           </div>
         </div>
       )}
