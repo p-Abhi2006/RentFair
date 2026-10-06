@@ -1,6 +1,6 @@
 import React from 'react';
 import { RentalListing } from '../../types/rental';
-import { formatCurrency, formatPricePerSqft, formatArea, formatVariance } from '../../utils/formatters';
+import { formatCurrency, formatPricePerSqft, formatArea, formatVariance, isValidRent } from '../../utils/formatters';
 import { MarketPositionScale } from '../common/MarketPositionScale';
 import {
   Bookmark,
@@ -31,7 +31,7 @@ export const RentalCard: React.FC<RentalCardProps> = ({
   isSaved = false,
 }) => {
   const variance = formatVariance(listing.variancePercentage);
-  const isRentAvailable = listing.rentAmount != null && !isNaN(listing.rentAmount) && listing.rentAmount > 0;
+  const isRentAvailable = isValidRent(listing.rentAmount);
   const isAreaAvailable = listing.carpetAreaSqft != null && !isNaN(listing.carpetAreaSqft) && listing.carpetAreaSqft > 0;
 
   // Semantic category color for integrated badge

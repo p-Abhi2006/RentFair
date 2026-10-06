@@ -1,18 +1,29 @@
 import { FairnessCategory } from '../types/rental';
 
+/**
+ * Validates whether a rent amount is a valid positive number.
+ * Disqualifies null, undefined, non-numbers, NaN, infinite, zero, negative, and near-zero amounts (< 1).
+ */
+export function isValidRent(amount: number | null | undefined): boolean {
+  if (amount == null) return false;
+  const num = typeof amount === 'number' ? amount : Number(amount);
+  if (isNaN(num) || !isFinite(num)) return false;
+  return num >= 1;
+}
+
 export function formatCurrency(amount: number | null | undefined): string {
-  if (amount == null || isNaN(amount) || amount <= 0) {
+  if (!isValidRent(amount)) {
     return 'Price on request';
   }
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(amount as number);
 }
 
 export function formatPricePerSqft(pricePerSqft: number | null | undefined): string {
-  if (pricePerSqft == null || isNaN(pricePerSqft) || pricePerSqft <= 0) {
+  if (pricePerSqft == null || isNaN(pricePerSqft) || pricePerSqft < 1) {
     return '₹/sqft unavailable';
   }
   return `₹${Math.round(pricePerSqft)}/sqft`;

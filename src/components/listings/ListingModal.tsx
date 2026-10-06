@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { RentalListing, MarketBaseline } from '../../types/rental';
-import { formatCurrency, formatPricePerSqft, formatArea } from '../../utils/formatters';
+import { formatCurrency, formatPricePerSqft, formatArea, isValidRent } from '../../utils/formatters';
 import { FairnessScoreGauge } from '../common/FairnessScoreGauge';
 import { MarketPositionScale } from '../common/MarketPositionScale';
 import { FeedbackWidget } from '../common/FeedbackWidget';
@@ -61,11 +61,11 @@ export const ListingModal: React.FC<ListingModalProps> = ({
 
   if (!listing) return null;
 
-  const isRentAvailable = listing.rentAmount != null && !isNaN(listing.rentAmount) && listing.rentAmount > 0;
+  const isRentAvailable = isValidRent(listing.rentAmount);
   const isAreaAvailable = listing.carpetAreaSqft != null && !isNaN(listing.carpetAreaSqft) && listing.carpetAreaSqft > 0;
   const medianRent = baseline?.medianRent ?? null;
   const medianPricePerSqft = baseline?.medianPricePerSqft ?? null;
-  const priceDiff = (isRentAvailable && medianRent != null) ? listing.rentAmount! - medianRent : null;
+  const priceDiff = (isRentAvailable && isValidRent(medianRent)) ? listing.rentAmount! - medianRent! : null;
   const isHigher = priceDiff != null && priceDiff > 0;
   const isUnassessed = listing.fairnessCategory == null || !isRentAvailable;
 

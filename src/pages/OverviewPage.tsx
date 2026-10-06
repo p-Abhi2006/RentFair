@@ -9,7 +9,7 @@ import { ListingModal } from '../components/listings/ListingModal';
 import { LoadingPipeline } from '../components/common/LoadingPipeline';
 import { EmptyState } from '../components/common/EmptyState';
 import { RentalListing, MarketBaseline, SearchFilterParams } from '../types/rental';
-import { formatCurrency, formatPricePerSqft } from '../utils/formatters';
+import { formatCurrency, formatPricePerSqft, isValidRent } from '../utils/formatters';
 import {
   Layers,
   IndianRupee,
@@ -199,8 +199,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
 
           <StatCard
             title="Valid Priced Listings"
-            value={(baseline.validPricedListingCount ?? listings.filter(l => l.rentAmount != null && l.rentAmount > 0).length).toString()}
-            secondaryValue={listings.length > 0 ? `${Math.round(((baseline.validPricedListingCount ?? listings.filter(l => l.rentAmount != null && l.rentAmount > 0).length) / listings.length) * 100)}% priced` : undefined}
+            value={(baseline.validPricedListingCount ?? listings.filter(l => isValidRent(l.rentAmount)).length).toString()}
+            secondaryValue={listings.length > 0 ? `${Math.round(((baseline.validPricedListingCount ?? listings.filter(l => isValidRent(l.rentAmount)).length) / listings.length) * 100)}% priced` : undefined}
             description="Explicitly listed monthly rental rates"
             icon={IndianRupee}
             badgeText={baseline.isPrototypeBaseline ? 'Prototype' : (baseline.sampleSize > 0 ? 'Priced' : undefined)}
@@ -284,8 +284,12 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                 <div className="p-3 rounded-xl bg-rf-bg-primary/80 border border-rf-border flex items-center justify-between">
                   <span className="text-rf-text-muted">Median Rent</span>
                   <span className="text-base font-bold text-rf-text-primary tabular-nums">
-                    {baseline.medianRent ? formatCurrency(baseline.medianRent) : 'Unassessed'}
-                    {baseline.medianRent && <span className="text-[10px] text-rf-text-muted font-sans font-normal ml-0.5">/mo</span>}
+                    {isValidRent(baseline.medianRent) ? (
+                      <>
+                        {formatCurrency(baseline.medianRent)}
+                        <span className="text-[10px] text-rf-text-muted font-sans font-normal ml-0.5">/mo</span>
+                      </>
+                    ) : 'Unassessed'}
                   </span>
                 </div>
 

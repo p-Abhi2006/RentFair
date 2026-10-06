@@ -1,6 +1,6 @@
 import React from 'react';
 import { RentalListing, MarketBaseline } from '../../types/rental';
-import { formatCurrency, formatPricePerSqft, formatArea } from '../../utils/formatters';
+import { formatCurrency, formatPricePerSqft, formatArea, isValidRent } from '../../utils/formatters';
 import { FairnessBadge } from '../common/FairnessBadge';
 import {
   Scale,
@@ -116,8 +116,9 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                 {formatCurrency(baseline.medianRent)} <span className="text-[10px] text-teal-500 font-sans">(median)</span>
               </td>
               {listings.map((item) => {
-                const diff = (item.rentAmount != null && baseline?.medianRent != null)
-                  ? item.rentAmount - baseline.medianRent
+                const isRentAvailable = isValidRent(item.rentAmount);
+                const diff = (isRentAvailable && item.rentAmount != null && isValidRent(baseline?.medianRent))
+                  ? item.rentAmount - baseline.medianRent!
                   : null;
                 return (
                   <td key={item.id} className="p-4 border-r border-slate-800/80 whitespace-nowrap">
@@ -185,7 +186,7 @@ export const ComparisonTable: React.FC<ComparisonTableProps> = ({
                 {formatPricePerSqft(baseline.medianPricePerSqft)}
               </td>
               {listings.map((item) => {
-                const isRentAvailable = item.rentAmount != null && !isNaN(item.rentAmount) && item.rentAmount > 0;
+                const isRentAvailable = isValidRent(item.rentAmount);
                 const isAreaAvailable = item.carpetAreaSqft != null && !isNaN(item.carpetAreaSqft) && item.carpetAreaSqft > 0;
                 return (
                   <td key={item.id} className="p-4 border-r border-slate-800/80 text-slate-200 tabular-nums whitespace-nowrap">

@@ -17,7 +17,7 @@ import {
   AlertTriangle,
   ChevronDown,
 } from 'lucide-react';
-import { formatCurrency, formatPricePerSqft } from '../utils/formatters';
+import { formatCurrency, formatPricePerSqft, isValidRent } from '../utils/formatters';
 
 interface ExploreRentalsPageProps {
   listings: RentalListing[];
@@ -316,8 +316,12 @@ export const ExploreRentalsPage: React.FC<ExploreRentalsPageProps> = ({
               <div className="p-3 rounded-xl bg-rf-bg-primary/80 border border-rf-border flex items-center justify-between">
                 <span className="text-slate-400">Market Median</span>
                 <span className="text-base font-bold text-white tabular-nums">
-                  {baseline.medianRent ? formatCurrency(baseline.medianRent) : 'Unassessed'}
-                  {baseline.medianRent ? <span className="text-xs text-slate-400 font-normal ml-0.5">/mo</span> : null}
+                  {isValidRent(baseline.medianRent) ? (
+                    <>
+                      {formatCurrency(baseline.medianRent)}
+                      <span className="text-xs text-slate-400 font-normal ml-0.5">/mo</span>
+                    </>
+                  ) : 'Unassessed'}
                 </span>
               </div>
 

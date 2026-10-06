@@ -23,6 +23,7 @@ import {
 import { rentalService } from '../services/rentalService';
 import { FeedbackWidget } from '../components/common/FeedbackWidget';
 import { MOCK_MARKET_COMPARISON } from '../data/mockRentalData';
+import { isValidRent } from '../utils/formatters';
 
 const POPULAR_LOCALITIES = [
   'Whitefield',
@@ -543,7 +544,7 @@ export const MarketComparePage: React.FC = () => {
 
                 <div className="space-y-3 pt-2">
                   {localities.map((loc) => {
-                    const hasRent = loc.medianRent !== null && loc.medianRent > 0;
+                    const hasRent = isValidRent(loc.medianRent);
                     const pct = hasRent && maxMedianRent > 0
                       ? Math.round((loc.medianRent! / maxMedianRent) * 100)
                       : 0;
@@ -717,7 +718,7 @@ export const MarketComparePage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {localities.map((loc) => {
-                const hasRent = loc.medianRent !== null && loc.medianRent > 0;
+                const hasRent = isValidRent(loc.medianRent);
                 const isLowest = hasRent && loc.medianRent === minMedianRent && validRentLocalities.length > 1;
                 const isHighest = hasRent && loc.medianRent === maxMedianRent && validRentLocalities.length > 1;
 

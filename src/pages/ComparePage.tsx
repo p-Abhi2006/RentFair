@@ -4,6 +4,7 @@ import { ComparisonTable } from '../components/compare/ComparisonTable';
 import { ListingModal } from '../components/listings/ListingModal';
 import { PipelineBanner } from '../components/common/PipelineBanner';
 import { NavTab } from '../components/layout/Navbar';
+import { isValidRent } from '../utils/formatters';
 import {
   Scale,
   Plus,
@@ -109,7 +110,7 @@ export const ComparePage: React.FC<ComparePageProps> = ({
                 <option value="" disabled className="bg-slate-900 text-slate-400">Select property to add...</option>
                 {availableToAdd.map((opt) => (
                   <option key={opt.id} value={opt.id} className="bg-slate-900 text-slate-100">
-                    {opt.title} — {opt.rentAmount != null ? `₹${opt.rentAmount.toLocaleString('en-IN')}/mo` : 'Price on request'} ({opt.bhk != null ? `${opt.bhk} BHK` : 'BHK N/A'})
+                    {opt.title} — {isValidRent(opt.rentAmount) ? `₹${opt.rentAmount!.toLocaleString('en-IN')}/mo` : 'Price on request'} ({opt.bhk != null ? `${opt.bhk} BHK` : 'BHK N/A'})
                   </option>
                 ))}
               </select>
