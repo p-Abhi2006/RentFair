@@ -22,6 +22,8 @@ import {
 } from '../types/rental';
 import { rentalService } from '../services/rentalService';
 import { FeedbackWidget } from '../components/common/FeedbackWidget';
+import { MOCK_MARKET_COMPARISON } from '../data/mockRentalData';
+import { isValidRent } from '../utils/formatters';
 
 const POPULAR_LOCALITIES = [
   'Whitefield',
@@ -143,6 +145,12 @@ export const MarketComparePage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleLoadDemoComparison = () => {
+    setError(null);
+    setComparisonData(MOCK_MARKET_COMPARISON);
+    setSelectedLocations(['Whitefield', 'Koramangala', 'HSR Layout', 'Indiranagar']);
   };
 
   // Run initial comparison on mount
@@ -458,12 +466,21 @@ export const MarketComparePage: React.FC = () => {
 
       {/* Error state */}
       {error && (
-        <div className="rounded-xl border border-rose-500/30 bg-rose-950/20 p-4 text-xs text-rose-300 flex items-start gap-3">
-          <AlertCircle className="w-4 h-4 mt-0.5 text-rose-400 flex-shrink-0" />
-          <div className="space-y-1">
-            <p className="font-semibold text-rose-200">Unable to complete market comparison</p>
-            <p className="text-slate-300">{error}</p>
+        <div className="rounded-xl border border-rose-500/30 bg-rose-950/20 p-4 text-xs text-rose-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-panel">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-4 h-4 mt-0.5 text-rose-400 flex-shrink-0" />
+            <div className="space-y-1">
+              <p className="font-semibold text-rose-200">Unable to complete live market comparison</p>
+              <p className="text-slate-300">{error}</p>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={handleLoadDemoComparison}
+            className="self-start sm:self-auto px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs tracking-wide transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 shrink-0"
+          >
+            Load Sample Comparison
+          </button>
         </div>
       )}
 
@@ -495,7 +512,7 @@ export const MarketComparePage: React.FC = () => {
               <div className="rounded-xl border border-teal-500/20 bg-teal-950/10 p-5 space-y-3">
                 <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-teal-400 font-semibold">
                   <Info className="w-4 h-4" />
-                  <span>Objective Market Findings</span>
+                  <span>Observed Market Differences</span>
                 </div>
                 <ul className="space-y-2 text-xs text-slate-300">
                   {comparisonData.comparisonSummary.observations.map((obs, idx) => (
@@ -527,7 +544,7 @@ export const MarketComparePage: React.FC = () => {
 
                 <div className="space-y-3 pt-2">
                   {localities.map((loc) => {
-                    const hasRent = loc.medianRent !== null && loc.medianRent > 0;
+                    const hasRent = isValidRent(loc.medianRent);
                     const pct = hasRent && maxMedianRent > 0
                       ? Math.round((loc.medianRent! / maxMedianRent) * 100)
                       : 0;
@@ -701,7 +718,7 @@ export const MarketComparePage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {localities.map((loc) => {
-                const hasRent = loc.medianRent !== null && loc.medianRent > 0;
+                const hasRent = isValidRent(loc.medianRent);
                 const isLowest = hasRent && loc.medianRent === minMedianRent && validRentLocalities.length > 1;
                 const isHighest = hasRent && loc.medianRent === maxMedianRent && validRentLocalities.length > 1;
 
@@ -715,7 +732,9 @@ export const MarketComparePage: React.FC = () => {
                       <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-3">
                         <div>
                           <h4 className="text-base font-bold text-white">{loc.locality}</h4>
-                          <span className="text-[11px] font-mono text-slate-400">{loc.city}</span>
+                          {loc.city && loc.city.trim().toLowerCase() !== loc.locality.trim().toLowerCase() && (
+                            <span className="text-[11px] font-mono text-slate-400">{loc.city}</span>
+                          )}
                         </div>
                         {loc.validPricedListingCount >= 5 ? (
                           <span className="inline-flex items-center gap-1 text-[10px] font-medium font-sans px-2 py-0.5 rounded-lg bg-emerald-950/40 border border-emerald-800/40 text-emerald-300">

@@ -11,12 +11,15 @@ import { AboutPage } from './pages/AboutPage';
 import { ErrorState } from './components/common/ErrorState';
 import { rentalService } from './services/rentalService';
 import { RentalListing, MarketBaseline, SearchFilterParams } from './types/rental';
-import { Check, X, AlertTriangle, Info } from 'lucide-react';
+import { MOCK_RENTAL_LISTINGS, MOCK_WHITEFIELD_BASELINE } from './data/mockRentalData';
+import { Check, X, AlertTriangle, Info, Sparkles } from 'lucide-react';
 
 const createEmptyBaseline = (location: string = 'Whitefield', bhk?: string | number | null): MarketBaseline => {
   const parts = location.split(',');
   const cleanLocality = parts[0]?.trim() || 'Whitefield';
-  const cleanCity = parts.length > 1 ? parts[parts.length - 1].trim() : 'Bangalore';
+  const cleanCity = parts.length > 1 && parts[parts.length - 1].trim().toLowerCase() !== cleanLocality.toLowerCase()
+    ? parts[parts.length - 1].trim()
+    : '';
   const numericBhk = bhk && bhk !== 'all' && !isNaN(Number(bhk)) ? Number(bhk) : 2;
 
   return {
@@ -63,6 +66,7 @@ export const App: React.FC = () => {
   const [baseline, setBaseline] = useState<MarketBaseline>(createEmptyBaseline('Whitefield, Bangalore', 2));
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
 
   // Search sequence and abort tracking to prevent race conditions
   const searchSeqRef = React.useRef<number>(0);
@@ -81,37 +85,40 @@ export const App: React.FC = () => {
   // Compare tray
   const [compareListings, setCompareListings] = useState<RentalListing[]>([]);
 
-  // Saved / Bookmarked properties (persisted in localStorage)
-  const [savedIds, setSavedIds] = useState<string[]>(() => {
+  // Saved / Bookmarked properties (persisted in localStorage with full objects)
+  const [savedListings, setSavedListings] = useState<RentalListing[]>(() => {
     try {
-      const saved = localStorage.getItem('rentfair_saved_ids');
+      const saved = localStorage.getItem('rentfair_saved_listings');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
     }
   });
 
+  const savedIds = savedListings.map((s) => s.id);
+
   // Selected listing for inspection modal
   const [selectedListing, setSelectedListing] = useState<RentalListing | null>(null);
 
-  // Toast feedback state (Section 7 Specification)
+  // Toast feedback state
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; message: string } | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
     setToast({ type, message });
     setTimeout(() => {
       setToast((prev) => (prev?.message === message ? null : prev));
-    }, 2600);
+    }, 2800);
   };
 
-  // Sync savedIds to localStorage
+  // Sync savedListings to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem('rentfair_saved_ids', JSON.stringify(savedIds));
+      localStorage.setItem('rentfair_saved_listings', JSON.stringify(savedListings));
+      localStorage.setItem('rentfair_saved_ids', JSON.stringify(savedListings.map((s) => s.id)));
     } catch {
       // ignore
     }
-  }, [savedIds]);
+  }, [savedListings]);
 
   // Load search data with race condition protection
   const loadData = async (params: Partial<SearchFilterParams> = {}) => {
@@ -124,7 +131,7 @@ export const App: React.FC = () => {
 
     const currentSeq = ++searchSeqRef.current;
 
-    // 2. Immediately clear stale baseline so older location/BHK metrics don't persist
+    // 2. Clear stale baseline
     const targetLocation = params.location || 'Whitefield, Bangalore';
     const targetBhk = params.bhk && params.bhk !== 'all' && !isNaN(Number(params.bhk))
       ? Number(params.bhk)
@@ -135,7 +142,7 @@ export const App: React.FC = () => {
     setError(null);
 
     try {
-      // Execute search and persist fresh listings in repository
+      // Execute live search via Spring Boot backend
       const fetchedListings = await rentalService.searchListings(params, {
         signal: abortController.signal,
       });
@@ -156,6 +163,7 @@ export const App: React.FC = () => {
       // Atomically commit matching listings and baseline
       setListings(fetchedListings);
       setBaseline(fetchedBaseline);
+      setIsDemoMode(false);
     } catch (err: any) {
       if (err?.name === 'AbortError') {
         // Ignored: aborted cleanly by a newer query
@@ -181,10 +189,28 @@ export const App: React.FC = () => {
     loadData(newParams);
   };
 
+  const handleUseDemoData = () => {
+    setIsDemoMode(true);
+    setListings(MOCK_RENTAL_LISTINGS);
+    setBaseline(MOCK_WHITEFIELD_BASELINE);
+    setError(null);
+    showToast('Loaded Verified Bangalore Prototype Dataset', 'info');
+  };
+
+  const handleToggleDemoMode = () => {
+    if (isDemoMode) {
+      setIsDemoMode(false);
+      showToast('Connecting to live SerpApi engine...', 'info');
+      loadData(searchParams);
+    } else {
+      handleUseDemoData();
+    }
+  };
+
   const handleToggleCompare = (listing: RentalListing) => {
     if (compareListings.some((item) => item.id === listing.id)) {
       setCompareListings((prev) => prev.filter((item) => item.id !== listing.id));
-      showToast('Removed from Compare', 'success');
+      showToast('Removed from Compare', 'info');
     } else {
       if (compareListings.length >= 4) {
         showToast('Unable to add to comparison (maximum 4 properties)', 'error');
@@ -197,30 +223,31 @@ export const App: React.FC = () => {
 
   const handleRemoveFromCompare = (id: string) => {
     setCompareListings((prev) => prev.filter((item) => item.id !== id));
-    showToast('Removed from Compare', 'success');
+    showToast('Removed from Compare', 'info');
   };
 
   const handleClearCompare = () => {
     setCompareListings([]);
-    showToast('Removed from Compare', 'success');
+    showToast('Cleared comparison tray', 'info');
   };
 
   const handleToggleSave = (listing: RentalListing) => {
-    if (savedIds.includes(listing.id)) {
-      setSavedIds((prev) => prev.filter((id) => id !== listing.id));
-      showToast('Removed from Saved', 'success');
-    } else {
-      setSavedIds((prev) => [...prev, listing.id]);
-      showToast('Added to Saved', 'success');
-    }
+    setSavedListings((prev) => {
+      const exists = prev.some((item) => item.id === listing.id);
+      if (exists) {
+        showToast('Removed from Saved Watchlist', 'info');
+        return prev.filter((item) => item.id !== listing.id);
+      } else {
+        showToast('Added to Saved Watchlist', 'success');
+        return [...prev, listing];
+      }
+    });
   };
 
   const handleClearSaved = () => {
-    setSavedIds([]);
-    showToast('Removed from Saved', 'success');
+    setSavedListings([]);
+    showToast('Cleared Saved Watchlist', 'info');
   };
-
-  const savedListings = listings.filter((item) => savedIds.includes(item.id));
 
   return (
     <div className="min-h-screen flex flex-col bg-[#06090e] text-slate-100 selection:bg-teal-500/20 selection:text-teal-300">
@@ -232,10 +259,31 @@ export const App: React.FC = () => {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         compareCount={compareListings.length}
-        savedCount={savedIds.length}
+        savedCount={savedListings.length}
+        isDemoMode={isDemoMode}
+        onToggleDemoMode={handleToggleDemoMode}
       />
 
-      {/* Toast Notification (Section 7 Specification) */}
+      {/* Demo Mode Top Notification Pill if in demo mode */}
+      {isDemoMode && (
+        <div className="bg-amber-950/70 border-b border-amber-800/60 px-4 py-2 text-xs text-amber-200 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 max-w-5xl mx-auto w-full">
+            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" aria-hidden="true" />
+            <span>
+              <strong>Demo Prototype Dataset Active:</strong> Exploring verified rental listings & baseline for Bangalore.
+            </span>
+            <button
+              type="button"
+              onClick={handleToggleDemoMode}
+              className="ml-auto underline text-amber-300 hover:text-white font-medium"
+            >
+              Switch to Live Search
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
       {toast && (
         <div
           role="status"
@@ -265,90 +313,104 @@ export const App: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 animate-in fade-in duration-150">
-        {error ? (
-          <div className="max-w-4xl mx-auto px-4 py-16">
-            <ErrorState
-              message={error}
-              onRetry={() => loadData(searchParams)}
+        {currentTab === 'overview' && (
+          error && !isDemoMode ? (
+            <div className="max-w-4xl mx-auto px-4 py-16">
+              <ErrorState
+                message={error}
+                onRetry={() => loadData(searchParams)}
+                onUseDemoData={handleUseDemoData}
+              />
+            </div>
+          ) : (
+            <OverviewPage
+              listings={listings}
+              baseline={baseline}
+              onSearch={handleSearch}
+              isSearching={isLoading}
+              onInspect={(listing) => setSelectedListing(listing)}
+              selectedListing={selectedListing}
+              onCloseInspect={() => setSelectedListing(null)}
+              onToggleCompare={handleToggleCompare}
+              compareListings={compareListings}
+              onToggleSave={handleToggleSave}
+              savedIds={savedIds}
+              onNavigateTab={handleSelectTab}
             />
-          </div>
-        ) : (
-          <>
-            {currentTab === 'overview' && (
-              <OverviewPage
-                listings={listings}
-                baseline={baseline}
-                onSearch={handleSearch}
-                isSearching={isLoading}
-                onInspect={(listing) => setSelectedListing(listing)}
-                selectedListing={selectedListing}
-                onCloseInspect={() => setSelectedListing(null)}
-                onToggleCompare={handleToggleCompare}
-                compareListings={compareListings}
-                onToggleSave={handleToggleSave}
-                savedIds={savedIds}
-                onNavigateTab={handleSelectTab}
-              />
-            )}
-
-            {currentTab === 'explore' && (
-              <ExploreRentalsPage
-                listings={listings}
-                baseline={baseline}
-                onSearch={handleSearch}
-                isSearching={isLoading}
-                onInspect={(listing) => setSelectedListing(listing)}
-                selectedListing={selectedListing}
-                onCloseInspect={() => setSelectedListing(null)}
-                onToggleCompare={handleToggleCompare}
-                compareListings={compareListings}
-                onToggleSave={handleToggleSave}
-                savedIds={savedIds}
-                onNavigateTab={handleSelectTab}
-                currentParams={searchParams}
-              />
-            )}
-
-            {currentTab === 'compare' && (
-              <ComparePage
-                compareListings={compareListings}
-                allListings={listings}
-                baseline={baseline}
-                onRemoveFromCompare={handleRemoveFromCompare}
-                onAddToCompare={handleToggleCompare}
-                onClearCompare={handleClearCompare}
-                onInspect={(listing) => setSelectedListing(listing)}
-                selectedListing={selectedListing}
-                onCloseInspect={() => setSelectedListing(null)}
-                onNavigateTab={handleSelectTab}
-                onToggleSave={handleToggleSave}
-                savedIds={savedIds}
-              />
-            )}
-
-            {currentTab === 'market-compare' && <MarketComparePage />}
-
-            {currentTab === 'saved' && (
-              <SavedPage
-                savedListings={savedListings}
-                allListings={listings}
-                baseline={baseline}
-                onToggleSave={handleToggleSave}
-                onClearSaved={handleClearSaved}
-                onInspect={(listing) => setSelectedListing(listing)}
-                selectedListing={selectedListing}
-                onCloseInspect={() => setSelectedListing(null)}
-                onToggleCompare={handleToggleCompare}
-                compareListings={compareListings}
-                onNavigateTab={handleSelectTab}
-              />
-            )}
-
-            {currentTab === 'insights' && <InsightsPage />}
-
-            {currentTab === 'about' && <AboutPage />}
-          </>
+          )
         )}
+
+        {currentTab === 'explore' && (
+          error && !isDemoMode ? (
+            <div className="max-w-4xl mx-auto px-4 py-16">
+              <ErrorState
+                message={error}
+                onRetry={() => loadData(searchParams)}
+                onUseDemoData={handleUseDemoData}
+              />
+            </div>
+          ) : (
+            <ExploreRentalsPage
+              listings={listings}
+              baseline={baseline}
+              onSearch={handleSearch}
+              isSearching={isLoading}
+              onInspect={(listing) => setSelectedListing(listing)}
+              selectedListing={selectedListing}
+              onCloseInspect={() => setSelectedListing(null)}
+              onToggleCompare={handleToggleCompare}
+              compareListings={compareListings}
+              onToggleSave={handleToggleSave}
+              savedIds={savedIds}
+              onNavigateTab={handleSelectTab}
+              currentParams={searchParams}
+            />
+          )
+        )}
+
+        {currentTab === 'compare' && (
+          <ComparePage
+            compareListings={compareListings}
+            allListings={listings.length > 0 ? listings : MOCK_RENTAL_LISTINGS}
+            baseline={baseline.sampleSize > 0 ? baseline : MOCK_WHITEFIELD_BASELINE}
+            onRemoveFromCompare={handleRemoveFromCompare}
+            onAddToCompare={handleToggleCompare}
+            onClearCompare={handleClearCompare}
+            onInspect={(listing) => setSelectedListing(listing)}
+            selectedListing={selectedListing}
+            onCloseInspect={() => setSelectedListing(null)}
+            onNavigateTab={handleSelectTab}
+            onToggleSave={handleToggleSave}
+            savedIds={savedIds}
+          />
+        )}
+
+        {currentTab === 'market-compare' && <MarketComparePage />}
+
+        {currentTab === 'saved' && (
+          <SavedPage
+            savedListings={savedListings}
+            allListings={listings.length > 0 ? listings : MOCK_RENTAL_LISTINGS}
+            baseline={baseline.sampleSize > 0 ? baseline : MOCK_WHITEFIELD_BASELINE}
+            onToggleSave={handleToggleSave}
+            onClearSaved={handleClearSaved}
+            onInspect={(listing) => setSelectedListing(listing)}
+            selectedListing={selectedListing}
+            onCloseInspect={() => setSelectedListing(null)}
+            onToggleCompare={handleToggleCompare}
+            compareListings={compareListings}
+            onNavigateTab={handleSelectTab}
+          />
+        )}
+
+        {currentTab === 'insights' && (
+          <InsightsPage
+            baseline={baseline.sampleSize > 0 ? baseline : MOCK_WHITEFIELD_BASELINE}
+            listings={listings.length > 0 ? listings : MOCK_RENTAL_LISTINGS}
+          />
+        )}
+
+        {currentTab === 'about' && <AboutPage />}
       </main>
 
       {/* Footer */}

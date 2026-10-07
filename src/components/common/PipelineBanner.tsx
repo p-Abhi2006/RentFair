@@ -57,7 +57,7 @@ export const PipelineBanner: React.FC<PipelineBannerProps> = ({
         <div className="flex items-center gap-2 shrink-0 text-xs text-slate-400 font-mono">
           <span className="flex items-center gap-1 text-slate-300">
             <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
-            Zero Fake Statistics
+            Deterministic Calculations
           </span>
           <span className="text-slate-700">•</span>
           <span className="flex items-center gap-1 text-slate-400">

@@ -303,7 +303,7 @@ class MarketComparisonTest {
         ResponseEntity<LocationComparisonResponse> responseEntity = controller.compareMarketsGet(
                 "Indiranagar, HSR Layout",
                 null,
-                2,
+                "2",
                 "all",
                 "all",
                 null,
@@ -315,5 +315,61 @@ class MarketComparisonTest {
         LocationComparisonResponse body = responseEntity.getBody();
         assertNotNull(body);
         assertEquals(2, body.getLocalities().size());
+    }
+
+    @Test
+    @DisplayName("End-to-End Controller GET: Accepts bhk='all' without 400 error")
+    void testControllerGetEndpointWithAllBhk() {
+        SerpApiOrganicResult r1 = new SerpApiOrganicResult();
+        r1.setTitle("Apartment in Indiranagar");
+        r1.setSnippet("Rent ₹50,000/month");
+        r1.setLink("https://magicbricks.com/i1");
+
+        SerpApiOrganicResult r2 = new SerpApiOrganicResult();
+        r2.setTitle("Apartment in HSR Layout");
+        r2.setSnippet("Rent ₹38,000 per month");
+        r2.setLink("https://nobroker.com/h1");
+
+        SerpApiResponse resp1 = new SerpApiResponse();
+        resp1.setOrganicResults(List.of(r1));
+        SerpApiResponse resp2 = new SerpApiResponse();
+        resp2.setOrganicResults(List.of(r2));
+
+        when(serpApiClient.search(anyString())).thenReturn(resp1, resp2);
+
+        ResponseEntity<LocationComparisonResponse> responseEntity = controller.compareMarketsGet(
+                "Indiranagar, HSR Layout",
+                null,
+                "all",
+                "all",
+                "all",
+                null,
+                null
+        );
+
+        assertNotNull(responseEntity);
+        assertEquals(200, responseEntity.getStatusCode().value());
+        LocationComparisonResponse body = responseEntity.getBody();
+        assertNotNull(body);
+        assertNull(body.getBhk(), "BHK should be null when 'all' is passed");
+        assertEquals(2, body.getLocalities().size());
+    }
+
+    @Test
+    @DisplayName("Market Comparison: Deduplicates city when identical to locality")
+    void testMarketComparisonCityDeduplication() {
+        RentalListingDto l1 = createMockListing("w1", "Whitefield", 35000, 2, 1000);
+        l1.setCity("Whitefield"); // Duplicate of locality
+
+        LocalityMarketStatsDto statsDup = marketComparisonService.computeLocalityStats("Whitefield", List.of(l1));
+        assertEquals("Whitefield", statsDup.getLocality());
+        assertNull(statsDup.getCity(), "City must be null when identical to locality");
+
+        RentalListingDto l2 = createMockListing("w2", "Whitefield", 35000, 2, 1000);
+        l2.setCity("Bangalore"); // Legitimate distinct city
+
+        LocalityMarketStatsDto statsDistinct = marketComparisonService.computeLocalityStats("Whitefield, Bangalore", List.of(l2));
+        assertEquals("Whitefield", statsDistinct.getLocality());
+        assertEquals("Bangalore", statsDistinct.getCity(), "Legitimate distinct city must be preserved");
     }
 }

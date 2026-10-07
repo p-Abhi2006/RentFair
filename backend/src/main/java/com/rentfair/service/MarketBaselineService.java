@@ -30,13 +30,16 @@ public class MarketBaselineService {
      */
     public MarketBaselineDto getBaseline(String locality, Integer bhk) {
         String cleanLocality = "Whitefield";
-        String cleanCity = "Bangalore";
+        String cleanCity = null;
 
         if (locality != null && !locality.trim().isEmpty()) {
             String[] parts = locality.split(",");
             cleanLocality = parts[0].trim();
             if (parts.length > 1) {
-                cleanCity = parts[parts.length - 1].trim();
+                String candidateCity = parts[parts.length - 1].trim();
+                if (!candidateCity.equalsIgnoreCase(cleanLocality) && !candidateCity.isEmpty()) {
+                    cleanCity = candidateCity;
+                }
             }
         }
 
@@ -71,9 +74,16 @@ public class MarketBaselineService {
         dto.setValidPricedListingCount(validCount);
         dto.setListingsWithAreaCount(areaCount);
 
-        // Align city from database entities if available
+        // Align city from database entities if available and distinct
         if (!validEntities.isEmpty() && validEntities.get(0).getCity() != null && !validEntities.get(0).getCity().trim().isEmpty()) {
-            dto.setCity(validEntities.get(0).getCity().trim());
+            String entityCity = validEntities.get(0).getCity().trim();
+            if (!entityCity.equalsIgnoreCase(cleanLocality)) {
+                dto.setCity(entityCity);
+            } else {
+                dto.setCity(null);
+            }
+        } else if (cleanCity != null && cleanCity.equalsIgnoreCase(cleanLocality)) {
+            dto.setCity(null);
         }
 
         // Convert entities to DTOs for statistical engine

@@ -128,7 +128,7 @@ export const AboutPage: React.FC = () => {
               <li>• Java 21 + Spring Boot 3.3.x</li>
               <li>• Spring Web REST Controllers</li>
               <li>• Deterministic statistical engine</li>
-              <li>• Lightweight memory caching</li>
+              <li>• H2 in-memory database (active session retention)</li>
             </ul>
           </div>
 
@@ -138,10 +138,10 @@ export const AboutPage: React.FC = () => {
               <span>Data & Pipeline</span>
             </div>
             <ul className="text-xs text-rf-text-muted space-y-1.5 font-mono">
-              <li>• H2 in-memory (local development)</li>
+              <li>• H2 in-memory (session persistence)</li>
               <li>• SerpApi real-time Google search</li>
               <li>• Tukey IQR outlier boundaries</li>
-              <li>• Zero synthetic data generation</li>
+              <li>• No fabricated rental values</li>
             </ul>
           </div>
         </div>

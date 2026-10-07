@@ -329,6 +329,79 @@ Generates production assets in `dist/`.
 
 ---
 
+## 17. Production Deployment Guide
+
+RentFair is architected to support two production deployment topologies:
+
+### Option A: Unified Single-Service Deployment (Recommended)
+Both the React Vite frontend and the Spring Boot backend run in a single container or executable JAR. The backend serves the compiled static SPA assets with client-side route fallback, eliminating CORS configuration entirely.
+
+#### 1. Docker / Docker Compose (One-Command Deployment)
+```bash
+# 1. Clone repository and copy production environment template
+cp .env.production.example .env
+
+# 2. Add your SerpApi API key to .env
+# SERPAPI_API_KEY=your_key_here
+
+# 3. Build and launch container
+docker compose up --build -d
+
+# 4. Access application
+# Open http://localhost:8080
+```
+
+#### 2. Cloud Platforms (Render, Railway, Fly.io, Heroku, VPS)
+Build the single unified JAR and deploy on any Java 21 host:
+```bash
+# 1. Compile frontend directly into Spring Boot static resources
+npm run build:static
+
+# 2. Package the unified Spring Boot JAR
+cd backend
+mvn clean package -DskipTests
+
+# 3. Launch unified application on host
+java -jar target/rentfair-backend-0.1.0-SNAPSHOT.jar
+```
+- **Port Binding**: Set `PORT` environment variable (e.g. `PORT=8080`).
+- **Healthcheck Endpoint**: `GET /api/health` monitors application uptime, database status, and SerpApi connectivity.
+
+---
+
+### Option B: Decoupled Deployment (Vercel / Netlify Frontend + Cloud Backend)
+
+#### 1. Backend Deployment (Render / Railway / AWS)
+1. Deploy `backend/` directory as a Maven Java 21 web service.
+2. Configure Environment Variables:
+   - `SERPAPI_API_KEY`: Your SerpApi API key.
+   - `CORS_ALLOWED_ORIGINS`: `https://your-app.vercel.app,https://your-custom-domain.com`
+   - `DATABASE_URL`: Optional PostgreSQL URI (defaults to in-memory H2 with PostgreSQL dialect if omitted).
+
+#### 2. Frontend Deployment (Vercel / Netlify)
+1. Deploy root repository to Vercel or Netlify.
+2. Build Settings:
+   - **Framework Preset**: Vite
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+3. Environment Variables:
+   - `VITE_API_BASE_URL`: `https://your-backend-service.onrender.com`
+4. Both [`vercel.json`](file:///d:/PROJECTS/RentFair/vercel.json) and [`public/_redirects`](file:///d:/PROJECTS/RentFair/public/_redirects) are pre-configured for client-side SPA routing (`/explore`, `/compare`, etc.).
+
+---
+
+### Environment Variables Reference
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `SERPAPI_API_KEY` | **Yes** (for live search) | Empty | SerpApi API key for Google Search scraping |
+| `PORT` | No | `8080` | HTTP listen port for backend and unified web app |
+| `DATABASE_URL` | No | `jdbc:h2:mem:rentfair;...` | PostgreSQL URI (`postgresql://...`) or JDBC URL |
+| `CORS_ALLOWED_ORIGINS` | No | `*` | Comma-separated list of allowed web origins |
+| `VITE_API_BASE_URL` | No (Decoupled only) | Same-origin (`''`) | Backend base URL for separated frontend hosting |
+
+---
+
 ## License
 
 This project is licensed under the MIT License for educational and hackathon submission purposes.

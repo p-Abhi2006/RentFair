@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { RentalListing, MarketBaseline } from '../../types/rental';
-import { formatCurrency, formatPricePerSqft, formatArea } from '../../utils/formatters';
+import { formatCurrency, formatPricePerSqft, formatArea, isValidRent } from '../../utils/formatters';
 import { FairnessScoreGauge } from '../common/FairnessScoreGauge';
 import { MarketPositionScale } from '../common/MarketPositionScale';
 import { FeedbackWidget } from '../common/FeedbackWidget';
@@ -57,13 +57,15 @@ export const ListingModal: React.FC<ListingModalProps> = ({
     };
   }, [listing, onClose]);
 
+  const [imageError, setImageError] = React.useState(false);
+
   if (!listing) return null;
 
-  const isRentAvailable = listing.rentAmount != null && !isNaN(listing.rentAmount) && listing.rentAmount > 0;
+  const isRentAvailable = isValidRent(listing.rentAmount);
   const isAreaAvailable = listing.carpetAreaSqft != null && !isNaN(listing.carpetAreaSqft) && listing.carpetAreaSqft > 0;
   const medianRent = baseline?.medianRent ?? null;
   const medianPricePerSqft = baseline?.medianPricePerSqft ?? null;
-  const priceDiff = (isRentAvailable && medianRent != null) ? listing.rentAmount! - medianRent : null;
+  const priceDiff = (isRentAvailable && isValidRent(medianRent)) ? listing.rentAmount! - medianRent! : null;
   const isHigher = priceDiff != null && priceDiff > 0;
   const isUnassessed = listing.fairnessCategory == null || !isRentAvailable;
 
@@ -90,10 +92,11 @@ export const ListingModal: React.FC<ListingModalProps> = ({
 
         {/* 1. TOP PROPERTY BANNER & HEADER */}
         <div className="relative h-44 -mx-5 sm:-mx-7 lg:-mx-8 -mt-5 sm:-mt-7 lg:-mt-8 mb-6 bg-slate-950 overflow-hidden border-b border-rf-border">
-          {listing.imageUrl ? (
+          {listing.imageUrl && !imageError ? (
             <img
               src={listing.imageUrl}
               alt={listing.title}
+              onError={() => setImageError(true)}
               className="w-full h-full object-cover"
             />
           ) : (
@@ -113,7 +116,12 @@ export const ListingModal: React.FC<ListingModalProps> = ({
           <div className="absolute bottom-3 left-5 sm:left-7 lg:left-8 flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/70 backdrop-blur-md border border-white/10 text-xs font-semibold text-white">
               <MapPin className="w-3.5 h-3.5 text-rf-teal" />
-              <span>{listing.locality}, {listing.city}</span>
+              <span>
+                {listing.locality}
+                {listing.city && listing.city.trim().toLowerCase() !== listing.locality.trim().toLowerCase()
+                  ? `, ${listing.city}`
+                  : ''}
+              </span>
               {listing.subLocality && <span className="text-slate-400">· {listing.subLocality}</span>}
             </span>
             {listing.sourcePlatform && (
@@ -314,9 +322,9 @@ export const ListingModal: React.FC<ListingModalProps> = ({
             Data Quality / Provenance
           </h4>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 text-xs">
             {/* Price extraction */}
-            <div className="p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
+            <div className="col-span-1 sm:col-span-2 p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
               <span className="text-slate-400 text-[10px] block uppercase font-medium">Price</span>
               <div className="mt-1 flex items-center gap-1.5 font-semibold">
                 {isRentAvailable ? (
@@ -334,7 +342,7 @@ export const ListingModal: React.FC<ListingModalProps> = ({
             </div>
 
             {/* Area extraction */}
-            <div className="p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
+            <div className="col-span-1 sm:col-span-2 p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
               <span className="text-slate-400 text-[10px] block uppercase font-medium">Area</span>
               <div className="mt-1 flex items-center gap-1.5 font-semibold">
                 {isAreaAvailable ? (
@@ -352,7 +360,7 @@ export const ListingModal: React.FC<ListingModalProps> = ({
             </div>
 
             {/* Fairness analysis */}
-            <div className="p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
+            <div className="col-span-2 sm:col-span-2 p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
               <span className="text-slate-400 text-[10px] block uppercase font-medium">Fairness analysis</span>
               <div className="mt-1 flex items-center gap-1.5 font-semibold">
                 {listing.fairnessScore != null ? (
@@ -370,18 +378,18 @@ export const ListingModal: React.FC<ListingModalProps> = ({
             </div>
 
             {/* Source */}
-            <div className="p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
+            <div className="col-span-2 sm:col-span-3 p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
               <span className="text-slate-400 text-[10px] block uppercase font-medium">Source</span>
               <div className="mt-1 flex items-center gap-1.5 font-semibold">
                 <span className="inline-flex items-center gap-1 text-emerald-400">
                   <Check className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                  <span className="truncate">Live search result</span>
+                  <span className="whitespace-nowrap">Live search result</span>
                 </span>
               </div>
             </div>
 
             {/* Retrieved */}
-            <div className="p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
+            <div className="col-span-2 sm:col-span-3 p-3 rounded-xl bg-rf-bg-primary/70 border border-rf-border">
               <span className="text-slate-400 text-[10px] block uppercase font-medium">Retrieved</span>
               <div className="mt-1 text-slate-300 font-semibold truncate">
                 {(() => {

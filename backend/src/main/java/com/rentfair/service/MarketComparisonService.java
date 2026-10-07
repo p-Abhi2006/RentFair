@@ -56,8 +56,15 @@ public class MarketComparisonService {
                 locality = listings.get(0).getLocality().trim();
             }
             if (listings.get(0).getCity() != null && !listings.get(0).getCity().trim().isEmpty()) {
-                city = listings.get(0).getCity().trim();
+                String candidateCity = listings.get(0).getCity().trim();
+                if (!candidateCity.equalsIgnoreCase(locality)) {
+                    city = candidateCity;
+                }
             }
+        }
+
+        if (city != null && city.equalsIgnoreCase(locality)) {
+            city = null;
         }
 
         dto.setLocality(locality);
@@ -257,11 +264,14 @@ public class MarketComparisonService {
     }
 
     private String cleanCityName(String raw) {
-        if (raw == null || raw.trim().isEmpty()) return "Bangalore";
+        if (raw == null || raw.trim().isEmpty()) return null;
         String[] parts = raw.split(",");
         if (parts.length > 1) {
-            return parts[parts.length - 1].trim();
+            String candidateCity = parts[parts.length - 1].trim();
+            if (!candidateCity.equalsIgnoreCase(parts[0].trim()) && !candidateCity.isEmpty()) {
+                return candidateCity;
+            }
         }
-        return "Bangalore";
+        return null;
     }
 }

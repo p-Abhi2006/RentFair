@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SearchFilterParams } from '../../types/rental';
 import {
   Search,
@@ -32,6 +32,26 @@ export const SearchPanel: React.FC<SearchPanelProps> = ({
   const [maxArea, setMaxArea] = useState<number | undefined>(initialParams?.maxArea || undefined);
   const [furnishing, setFurnishing] = useState<string>(initialParams?.furnishing || 'all');
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (initialParams) {
+      if (initialParams.location !== undefined) setLocation(initialParams.location);
+      if (initialParams.bhk !== undefined) setBhk(initialParams.bhk);
+      if (initialParams.propertyType !== undefined) setPropertyType(initialParams.propertyType);
+      if (initialParams.maxRent !== undefined) setMaxRent(initialParams.maxRent);
+      if (initialParams.minArea !== undefined) setMinArea(initialParams.minArea);
+      if (initialParams.maxArea !== undefined) setMaxArea(initialParams.maxArea);
+      if (initialParams.furnishing !== undefined) setFurnishing(initialParams.furnishing);
+    }
+  }, [
+    initialParams?.location,
+    initialParams?.bhk,
+    initialParams?.propertyType,
+    initialParams?.maxRent,
+    initialParams?.minArea,
+    initialParams?.maxArea,
+    initialParams?.furnishing,
+  ]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

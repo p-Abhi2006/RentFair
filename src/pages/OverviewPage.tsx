@@ -9,7 +9,7 @@ import { ListingModal } from '../components/listings/ListingModal';
 import { LoadingPipeline } from '../components/common/LoadingPipeline';
 import { EmptyState } from '../components/common/EmptyState';
 import { RentalListing, MarketBaseline, SearchFilterParams } from '../types/rental';
-import { formatCurrency, formatPricePerSqft } from '../utils/formatters';
+import { formatCurrency, formatPricePerSqft, isValidRent } from '../utils/formatters';
 import {
   Layers,
   IndianRupee,
@@ -36,6 +36,14 @@ interface OverviewPageProps {
   savedIds: string[];
   onNavigateTab: (tab: NavTab) => void;
 }
+
+const formatLocationDisplay = (locality?: string, city?: string | null): string => {
+  const loc = locality?.trim() || '';
+  const c = city?.trim() || '';
+  if (!loc) return c || 'Whitefield';
+  if (!c || c.toLowerCase() === loc.toLowerCase()) return loc;
+  return `${loc}, ${c}`;
+};
 
 export const OverviewPage: React.FC<OverviewPageProps> = ({
   listings,
@@ -99,7 +107,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           onSearch={onSearch}
           isSearching={isSearching}
           initialParams={{
-            location: `${baseline.locality}, ${baseline.city || 'Bangalore'}`,
+            location: formatLocationDisplay(baseline.locality, baseline.city),
             bhk: baseline.bhk ? String(baseline.bhk) : 'all',
           }}
         />
@@ -180,19 +188,19 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         {/* 4 Core Analytical SaaS Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatCard
-            title="Live Search Results"
+            title="Relevant Rental Results"
             value={listings.length.toString()}
             secondaryValue={`of ${baseline.sourceListingCount ?? listings.length} indexed`}
             description={`${listings.filter(l => l.carpetAreaSqft != null && l.carpetAreaSqft > 0).length} with usable area for parity`}
             icon={Layers}
-            badgeText={baseline.isPrototypeBaseline ? 'Prototype' : (listings.length > 0 ? 'Live Search' : undefined)}
+            badgeText={baseline.isPrototypeBaseline ? 'Prototype' : (listings.length > 0 ? 'Relevant' : undefined)}
             trend={{ direction: 'neutral', text: `Locality: ${baseline.locality}` }}
           />
 
           <StatCard
             title="Valid Priced Listings"
-            value={(baseline.validPricedListingCount ?? listings.filter(l => l.rentAmount != null && l.rentAmount > 0).length).toString()}
-            secondaryValue={listings.length > 0 ? `${Math.round(((baseline.validPricedListingCount ?? listings.filter(l => l.rentAmount != null && l.rentAmount > 0).length) / listings.length) * 100)}% priced` : undefined}
+            value={(baseline.validPricedListingCount ?? listings.filter(l => isValidRent(l.rentAmount)).length).toString()}
+            secondaryValue={listings.length > 0 ? `${Math.round(((baseline.validPricedListingCount ?? listings.filter(l => isValidRent(l.rentAmount)).length) / listings.length) * 100)}% priced` : undefined}
             description="Explicitly listed monthly rental rates"
             icon={IndianRupee}
             badgeText={baseline.isPrototypeBaseline ? 'Prototype' : (baseline.sampleSize > 0 ? 'Priced' : undefined)}
@@ -276,8 +284,12 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                 <div className="p-3 rounded-xl bg-rf-bg-primary/80 border border-rf-border flex items-center justify-between">
                   <span className="text-rf-text-muted">Median Rent</span>
                   <span className="text-base font-bold text-rf-text-primary tabular-nums">
-                    {baseline.medianRent ? formatCurrency(baseline.medianRent) : 'Unassessed'}
-                    {baseline.medianRent && <span className="text-[10px] text-rf-text-muted font-sans font-normal ml-0.5">/mo</span>}
+                    {isValidRent(baseline.medianRent) ? (
+                      <>
+                        {formatCurrency(baseline.medianRent)}
+                        <span className="text-[10px] text-rf-text-muted font-sans font-normal ml-0.5">/mo</span>
+                      </>
+                    ) : 'Unassessed'}
                   </span>
                 </div>
 
