@@ -72,7 +72,7 @@ public class SerpApiClient {
             }
 
             if (response.getError() != null && !response.getError().trim().isEmpty()) {
-                String errorMsg = response.getError();
+                String errorMsg = sanitizeMessage(response.getError(), apiKey);
                 log.warn("SerpApi returned error message: {}", errorMsg);
                 if (errorMsg.toLowerCase().contains("api_key") || errorMsg.toLowerCase().contains("invalid key")) {
                     throw new MissingApiKeyException("SerpApi rejected API key: " + errorMsg);
@@ -88,8 +88,44 @@ public class SerpApiClient {
         } catch (MissingApiKeyException | SerpApiRateLimitException | SerpApiNetworkException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Failed to connect to SerpApi: {}", e.getMessage(), e);
-            throw new SerpApiNetworkException("Network error while connecting to SerpApi: " + e.getMessage(), e);
+            String safeMessage = sanitizeMessage(e.getMessage(), apiKey);
+            boolean isTimeout = isTimeoutException(e);
+            if (isTimeout) {
+                log.error("Timeout connecting to SerpApi: {}", safeMessage);
+                throw new SerpApiNetworkException("Connection or read timed out while connecting to SerpApi: " + safeMessage, new RuntimeException(safeMessage));
+            } else {
+                log.error("Failed to connect to SerpApi: {}", safeMessage);
+                throw new SerpApiNetworkException("Network error while connecting to SerpApi: " + safeMessage, new RuntimeException(safeMessage));
+            }
         }
+    }
+
+    public String sanitizeMessage(String message, String apiKey) {
+        if (message == null || message.trim().isEmpty()) {
+            return "Connection error";
+        }
+        String sanitized = message;
+        if (apiKey != null && !apiKey.trim().isEmpty()) {
+            sanitized = sanitized.replace(apiKey, "***");
+        }
+        sanitized = sanitized.replaceAll("(?i)(api_key=)[^&\\s\"'>]+", "$1***");
+        return sanitized;
+    }
+
+    public boolean isTimeoutException(Throwable t) {
+        Throwable current = t;
+        while (current != null) {
+            if (current instanceof java.net.SocketTimeoutException
+                    || current instanceof java.util.concurrent.TimeoutException
+                    || current.getClass().getName().contains("Timeout")) {
+                return true;
+            }
+            String msg = current.getMessage();
+            if (msg != null && (msg.toLowerCase().contains("timed out") || msg.toLowerCase().contains("timeout"))) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }
